@@ -1,0 +1,57 @@
+//NAISYS SERVERLANG
+
+Core::Println(!fmt: "%{0} Running on MacOS", ![...]: ["Hello"]);
+
+Core::Println(!fmt: $RUNTIME_HTTP_BODY);
+
+def test_func() : I16 {
+    Core::Println(!fmt: "Hello from third func.");
+    return:= 24;
+};
+
+var test_string: String = test_func();
+
+Core::Println(!fmt: $test_string);
+
+@/home {
+    $Header = "text/html";
+    $Body = "<h1>Serverlang</h1>";
+
+    Core::Println(!fmt: "Home path");
+};
+
+@/* {
+
+    struct conn = {
+        "db_type":"QPSQL",
+        "db_name":"postgres",
+        "db_user":"postgres",
+        "db_password":"postgres",
+        "db_host":"localhost",
+        "db_port":5432
+    };
+
+    var host = $conn["db_host"];
+
+    var test_params = $RUNTIME_HTTP_PARAMS["test2"];
+
+    Core::Println(!fmt: $host);
+
+    Core::Println(!fmt: $test_params);
+
+    var jsn_strng = Core::Json::Stringify(!object: $conn);
+    Core::Println(!fmt: $jsn_strng);
+
+    var dbh_1 = Core::Db::Open(!settings: $conn);
+
+    var qry = "CREATE TABLE test(a int, b int, c int)";
+
+    Core::Println(!fmt: $qry);
+
+    var mdl = Core::Db::Exec(!handle: $dbh_1, !fmt: $qry);
+
+    Core::Db::Close(!handle: $dbh_1);
+
+    $Header = "application/json";
+    $Body = $mdl;
+};

@@ -4,8 +4,8 @@
 [Bb]uild/*
 [Bb]uild*
 
-.vscode/*
-.fleet/*
+/.vscode/*
+/.fleet/*
 *~
 *.autosave
 *.a

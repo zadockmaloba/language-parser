@@ -4,6 +4,181 @@
 #include <string>
 #include <vector>
 
+#define __NOT_STRING_OR_COMMENT__                                              \
+  current_token.type() !=                                                      \
+      Token::TokenType::STRING_LITERAL &&current_token.type() !=               \
+      Token::TokenType::COMMENT
+
+#define __NUMERIC_OR_WHITESPACE__                                              \
+  current_token.type() == Token::TokenType::NUMERIC_LITERAL ||                 \
+      current_token.type() == Token::TokenType::WHITE_SPACE
+
+#define NOT_DELIMETER(x, y)                                                    \
+  !(x->const_data() == y && x->type() == Token::TokenType::PUNCTUATOR)
+
+namespace ServerLang {
+
+// Forward:
+class ASTNode;
+
+// Typedefs:
+using node_list = std::vector<ASTNode>;
+
+enum class Type {
+  UNDEFINED,
+  I16,
+  I32,
+  I64,
+  U8,
+  U16,
+  F32,
+  F64,
+  BOOL,
+  COMPLEX,
+  VOID,
+  ARRAY,
+  CLASS,
+  STRUCT,
+  JSON,
+  ROUTE,
+  SCOPE,
+  OBJECT,
+  PRIMITIVE,
+};
+
+class ASTNode {
+
+public:
+  virtual ServerLang::Type type() const { return Type::UNDEFINED; };
+  virtual const char *type_string() const { return "Undefined"; };
+};
+
+class Scope : public ASTNode {
+public:
+  ServerLang::Type type() const override { return Type::SCOPE; }
+  const char *type_string() const override { return "Scope"; }
+
+private:
+  node_list m_children;
+};
+
+class Object : public Scope {
+public:
+  ServerLang::Type type() const override { return Type::OBJECT; }
+  const char *type_string() const override { return "Object"; }
+};
+
+class Primitive : public ASTNode {
+public:
+  ServerLang::Type type() const override { return Type::PRIMITIVE; }
+  const char *type_string() const override { return "Primitive"; }
+};
+
+static const std::map<const char *, bool> keywords = {
+    {"var", 1}, {"const", 1}, {"def", 1}, {"return", 1},
+    {"for", 1}, {"while", 1}, {"if", 1},
+};
+
+namespace InternalTypes {
+
+class I16 : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::I16; }
+  const char *type_string() const override { return "Integer_16"; }
+};
+
+class I32 : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::I32; }
+  const char *type_string() const override { return "Integer_32"; }
+};
+
+class I64 : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::I64; }
+  const char *type_string() const override { return "Integer_64"; }
+};
+
+class U8 : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::U8; }
+  const char *type_string() const override { return "Unsigned_8"; }
+};
+
+class U16 : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::U16; }
+  const char *type_string() const override { return "Unsigned_16"; }
+};
+
+class F32 : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::F32; }
+  const char *type_string() const override { return "Float_32"; }
+};
+
+class F64 : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::F64; }
+  const char *type_string() const override { return "Float_64"; }
+};
+
+class Bool : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::BOOL; }
+  const char *type_string() const override { return "Boolean"; }
+};
+
+class Complex : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::COMPLEX; }
+  const char *type_string() const override { return "Complex"; }
+};
+
+class Void : public Primitive {
+public:
+  ServerLang::Type type() const override { return Type::VOID; }
+  const char *type_string() const override { return "Void"; }
+};
+
+} // namespace InternalTypes
+
+namespace CompoundTypes {
+
+class Array : public Object {
+public:
+  ServerLang::Type type() const override { return Type::ARRAY; }
+  const char *type_string() const override { return "Array"; }
+};
+
+class Class : public Object {
+public:
+  ServerLang::Type type() const override { return Type::CLASS; }
+  const char *type_string() const override { return "Class"; }
+};
+
+class Struct : public Object {
+public:
+  ServerLang::Type type() const override { return Type::STRUCT; }
+  const char *type_string() const override { return "Struct"; }
+};
+
+class Json : public Object {
+public:
+  ServerLang::Type type() const override { return Type::JSON; }
+  const char *type_string() const override { return "Json"; }
+};
+
+class Route : public Object {
+public:
+  ServerLang::Type type() const override { return Type::ROUTE; }
+  const char *type_string() const override { return "Route"; }
+};
+
+} // namespace CompoundTypes
+
+} // namespace ServerLang
+
 class Token {
 public:
   enum class TokenType {
@@ -77,7 +252,7 @@ public: // static methods
       case '_':
       case 65 ... 90:  // A-Z
       case 97 ... 122: // a-z
-        if (current_token.type() != Token::TokenType::STRING_LITERAL) {
+        if (__NOT_STRING_OR_COMMENT__) {
           current_token.setType(Token::TokenType::IDENTIFIER);
           current_token.data().append(1, v);
         } else
@@ -91,7 +266,8 @@ public: // static methods
       case ',':
       case ':':
       case '@':
-        if (current_token.type() != Token::TokenType::STRING_LITERAL) {
+        if (__NOT_STRING_OR_COMMENT__) {
+          end_token(current_token, list);
           current_token.setType(Token::TokenType::PUNCTUATOR);
           current_token.data().append(1, v);
           end_token(current_token, list);
@@ -99,7 +275,7 @@ public: // static methods
           current_token.data().append(1, v);
         break;
       case '$':
-        if (current_token.type() != Token::TokenType::STRING_LITERAL) {
+        if (__NOT_STRING_OR_COMMENT__) {
           current_token.setType(Token::TokenType::POINTER_OPERATOR);
           current_token.data().append(1, v);
           end_token(current_token, list);
@@ -108,7 +284,9 @@ public: // static methods
         }
         break;
       case '.':
-        if (current_token.type() != Token::TokenType::STRING_LITERAL) {
+        if (current_token.type() == Token::TokenType::NUMERIC_LITERAL)
+          current_token.data().append(1, v);
+        else if (__NOT_STRING_OR_COMMENT__) {
           current_token.setType(Token::TokenType::ACCESS_OPERATOR);
           current_token.data().append(1, v);
           end_token(current_token, list);
@@ -121,19 +299,30 @@ public: // static methods
       case '|':
       case '>':
       case '<':
-        if (current_token.type() != Token::TokenType::STRING_LITERAL) {
+        if (__NOT_STRING_OR_COMMENT__) {
           current_token.setType(Token::TokenType::LOGIC_OPERATOR);
           current_token.data().append(1, v);
         } else
           current_token.data().append(1, v);
         break;
+      case '*':
+        if (__NOT_STRING_OR_COMMENT__ && current_token.const_data() == "/") {
+          current_token.setType(Token::TokenType::IDENTIFIER);
+          current_token.data().append(1, v);
+        } else if (__NOT_STRING_OR_COMMENT__) {
+          current_token.setType(Token::TokenType::ARITHMETIC_OPERATOR);
+          current_token.data().append(1, v);
+        } else
+          current_token.data().append(1, v);
+        break;
+      case '/':
+        if (current_token.const_data() == "/")
+          current_token.setType(Token::TokenType::COMMENT);
       case '+':
       case '-':
-      case '*':
-      case '/':
       case '^':
       case '=':
-        if (current_token.type() != Token::TokenType::STRING_LITERAL) {
+        if (__NOT_STRING_OR_COMMENT__) {
           current_token.setType(Token::TokenType::ARITHMETIC_OPERATOR);
           current_token.data().append(1, v);
         } else
@@ -141,17 +330,18 @@ public: // static methods
         break;
       case '\r':
       case '\n':
-      case '\t':
         end_token(current_token, list);
         break;
+      case '\t':
       case ' ':
-        if (current_token.type() == Token::TokenType::STRING_LITERAL)
+        if (current_token.type() == Token::TokenType::STRING_LITERAL ||
+            current_token.type() == Token::TokenType::COMMENT)
           current_token.data().append(1, v);
         else
           end_token(current_token, list);
         break;
       case '\"':
-        if (current_token.type() != Token::TokenType::STRING_LITERAL) {
+        if (__NOT_STRING_OR_COMMENT__) {
           end_token(current_token, list);
           current_token.setType(Token::TokenType::STRING_LITERAL);
         } else if (current_token.type() == Token::TokenType::STRING_LITERAL) {
@@ -159,7 +349,8 @@ public: // static methods
         }
         break;
       default:
-        if (current_token.type() == Token::TokenType::STRING_LITERAL)
+        if (current_token.type() == Token::TokenType::STRING_LITERAL ||
+            current_token.type() == Token::TokenType::COMMENT)
           current_token.data().append(1, v);
 
         break;
@@ -176,10 +367,131 @@ public: // static methods
   }
 };
 
-class Lexer {
+class SyntaxAnalyzer {
+  enum class State {
+    NO_OP,
+    VARIABLE_DECL,
+    CONST_DECL,
+    FUNCTION_DECL,
+    EXPRESSION
+  };
+
+  using node = ServerLang::ASTNode;
+  using object = ServerLang::Object;
+  using scope = ServerLang::Scope;
+
 public:
-  Lexer() = default;
-  ~Lexer() {}
+  SyntaxAnalyzer() = default;
+  ~SyntaxAnalyzer() {}
+
+public:
+  const ServerLang::node_list analyze(const Tokenizer::token_list &tokens) {
+    ServerLang::node_list ret;
+    auto itr = tokens.cbegin();
+    while (itr != tokens.cend()) {
+      switch (m_state) {
+      case State::NO_OP:
+        // std::cout << "[NO OP]" << std::endl;
+        check_for_next_possible(itr);
+        itr++;
+        break;
+      case State::CONST_DECL:
+        std::cout << "[CONST DECL]" << std::endl;
+        ret.push_back(check_for_const_decl(itr));
+        break;
+      case State::VARIABLE_DECL:
+        std::cout << "[VAR DECL]" << std::endl;
+        ret.push_back(check_for_variable_decl(itr));
+        break;
+      case State::FUNCTION_DECL:
+        std::cout << "[FUNCTION DECL]" << std::endl;
+        ret.push_back(check_for_fn_decl(itr));
+        break;
+      case State::EXPRESSION:
+        std::cout << "[EXPRESSION]" << std::endl;
+        ret.push_back(check_for_expression(itr));
+        break;
+      default:
+        break;
+      }
+    }
+    return ret;
+  }
+
+private:
+  State m_state = {State::NO_OP};
+
+private: // helpers
+  void check_for_next_possible(Tokenizer::token_list::const_iterator it) {
+    switch (it->type()) {
+    case Token::TokenType::COMMENT:
+      m_state = State::NO_OP;
+      break;
+    case Token::TokenType::IDENTIFIER:
+      if (ServerLang::keywords.find(it->const_data().c_str()) !=
+          ServerLang::keywords.end()) {
+        m_state = State::EXPRESSION;
+      } else if (it->const_data() == "const") {
+        m_state = State::CONST_DECL;
+      } else if (it->const_data() == "var") {
+        m_state = State::VARIABLE_DECL;
+      } else if (it->const_data() == "def") {
+        m_state = State::FUNCTION_DECL;
+      }
+      break;
+    default:
+      m_state = State::NO_OP;
+      break;
+    }
+  }
+  node check_for_expression(Tokenizer::token_list::const_iterator it) {
+    while (NOT_DELIMETER(it, ";")) {
+      // TODO
+      it++;
+    }
+    m_state = State::NO_OP;
+    return {};
+  }
+  scope check_for_compound_stmnt(Tokenizer::token_list::const_iterator it) {
+    while (NOT_DELIMETER(it, "}")) {
+      // TODO
+      it++;
+    }
+    m_state = State::NO_OP;
+    return {};
+  }
+  node check_for_variable_decl(Tokenizer::token_list::const_iterator it) {
+    while (NOT_DELIMETER(it, ";")) {
+      // TODO
+      it++;
+    }
+    m_state = State::NO_OP;
+    return {};
+  }
+  node check_for_const_decl(Tokenizer::token_list::const_iterator it) {
+    while (NOT_DELIMETER(it, ";")) {
+      // TODO
+      it++;
+    }
+    m_state = State::NO_OP;
+    return {};
+  }
+  node check_for_fn_call(Tokenizer::token_list::const_iterator it) {
+    while (NOT_DELIMETER(it, ";")) {
+      // TODO
+      it++;
+    }
+    m_state = State::NO_OP;
+    return {};
+  }
+  node check_for_fn_decl(Tokenizer::token_list::const_iterator it) {
+    while (NOT_DELIMETER(it, ";")) {
+      // TODO
+      it++;
+    }
+    m_state = State::NO_OP;
+    return {};
+  }
 };
 
 class Parser {
@@ -194,7 +506,7 @@ int main(int argc, char **argv) {
   std::string data, line;
   _file.open("sample.nsl", std::ios::in);
   if (!_file.is_open())
-    fprintf(stderr, "Could not open the speciied file: %s \n", "sample.nsl");
+    fprintf(stderr, "Could not open the specified file: %s \n", "sample.nsl");
 
   while (std::getline(_file, line)) {
     data.append(line + "\n");
@@ -208,4 +520,7 @@ int main(int argc, char **argv) {
   for (auto const &v : tkns)
     std::cout << Token::TokenNames.at(v.type()) << " : " << v.const_data()
               << std::endl;
+
+  SyntaxAnalyzer _st;
+  _st.analyze(tkns);
 }

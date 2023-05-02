@@ -16,6 +16,8 @@
 #define NOT_DELIMETER(x, y)                                                    \
   !(x->const_data() == y && x->type() == Token::TokenType::PUNCTUATOR)
 
+#define MAP_HAS(x, y) x.find(y) != x.end()
+
 namespace ServerLang {
 
 // Forward:
@@ -44,6 +46,17 @@ enum class Type {
   SCOPE,
   OBJECT,
   PRIMITIVE,
+};
+
+static const std::map<const char *, Type> TypeMap = {
+    {"I16", Type::I16},         {"I32", Type::I32},
+    {"I64", Type::I64},         {"U8", Type::U8},
+    {"U16", Type::U16},         {"F32", Type::F32},
+    {"F64", Type::F64},         {"Bool", Type::BOOL},
+    {"Complex", Type::COMPLEX}, {"Void", Type::VOID},
+    {"Array", Type::ARRAY},     {"Class", Type::CLASS},
+    {"Struct", Type::STRUCT},   {"Json", Type::JSON},
+    {"Route", Type::ROUTE},
 };
 
 class ASTNode {
@@ -176,6 +189,48 @@ public:
 };
 
 } // namespace CompoundTypes
+
+static const ASTNode get_type_instance(const Type _t) {
+  switch (_t) {
+  case ServerLang::Type::I16:
+    return InternalTypes::I16{};
+  case ServerLang::Type::I32:
+    return InternalTypes::I32{};
+  case ServerLang::Type::I64:
+    return InternalTypes::I64{};
+  case ServerLang::Type::U8:
+    return InternalTypes::U8{};
+  case ServerLang::Type::U16:
+    return InternalTypes::U16{};
+  case ServerLang::Type::F32:
+    return InternalTypes::F32{};
+  case ServerLang::Type::F64:
+    return InternalTypes::F64{};
+  case ServerLang::Type::BOOL:
+    return InternalTypes::Bool{};
+  case ServerLang::Type::COMPLEX:
+    return InternalTypes::Complex{};
+  case ServerLang::Type::VOID:
+    return InternalTypes::Void{};
+  case ServerLang::Type::ARRAY:
+    return CompoundTypes::Array{};
+  case ServerLang::Type::CLASS:
+    return CompoundTypes::Class{};
+  case ServerLang::Type::STRUCT:
+    return CompoundTypes::Struct{};
+  case ServerLang::Type::JSON:
+    return CompoundTypes::Json{};
+  case ServerLang::Type::ROUTE:
+    return CompoundTypes::Route{};
+  default:
+    return {};
+    break;
+  }
+}
+
+static const ASTNode get_type_instance(const char *_t_string) {
+  return get_type_instance(ServerLang::TypeMap.at(_t_string));
+}
 
 } // namespace ServerLang
 
@@ -438,6 +493,7 @@ private: // helpers
       } else if (it->const_data() == "def") {
         m_state = State::FUNCTION_DECL;
       }
+      it++;
       break;
     default:
       m_state = State::NO_OP;
@@ -461,10 +517,19 @@ private: // helpers
     return {};
   }
   node check_for_variable_decl(Tokenizer::token_list::const_iterator it) {
-    while (NOT_DELIMETER(it, ";")) {
-      // TODO
+    auto _id = it->const_data();
+    node _var;
+    it++;
+
+    if (it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
       it++;
+      if (MAP_HAS(ServerLang::TypeMap, it->const_data().c_str()) &&
+          it->type() == Token::TokenType::IDENTIFIER) {
+        _var = ServerLang::get_type_instance(it->const_data().c_str());
+        // Continue from here
+      }
     }
+
     m_state = State::NO_OP;
     return {};
   }

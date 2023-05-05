@@ -16,7 +16,10 @@
 #define NOT_DELIMETER(x, y)                                                    \
   !(x->const_data() == y && x->type() == Token::TokenType::PUNCTUATOR)
 
-#define MAP_HAS(x, y) x.find(y) != x.end()
+#define MAP_HAS(x, y) (x.find(y) != x.end())
+
+#define DEFAULT_NODE_CONSTRUCTOR(x)                                            \
+  x() { setPreferredType(this->type()); }
 
 namespace ServerLang {
 
@@ -37,6 +40,7 @@ enum class Type {
   F64,
   BOOL,
   COMPLEX,
+  STRING,
   VOID,
   ARRAY,
   CLASS,
@@ -48,26 +52,23 @@ enum class Type {
   PRIMITIVE,
 };
 
-static const std::map<const char *, Type> TypeMap = {
-    {"I16", Type::I16},         {"I32", Type::I32},
-    {"I64", Type::I64},         {"U8", Type::U8},
-    {"U16", Type::U16},         {"F32", Type::F32},
-    {"F64", Type::F64},         {"Bool", Type::BOOL},
-    {"Complex", Type::COMPLEX}, {"Void", Type::VOID},
-    {"Array", Type::ARRAY},     {"Class", Type::CLASS},
-    {"Struct", Type::STRUCT},   {"Json", Type::JSON},
-    {"Route", Type::ROUTE},
-};
-
 class ASTNode {
 
-public:
+public: // virtual methods
   virtual ServerLang::Type type() const { return Type::UNDEFINED; };
   virtual const char *type_string() const { return "Undefined"; };
+
+public:
+  void setPreferredType(const Type newType) { m_preferredType = newType; }
+  Type preferredType() const { return m_preferredType; }
+
+private:
+  Type m_preferredType = type();
 };
 
 class Scope : public ASTNode {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Scope)
   ServerLang::Type type() const override { return Type::SCOPE; }
   const char *type_string() const override { return "Scope"; }
 
@@ -77,79 +78,116 @@ private:
 
 class Object : public Scope {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Object)
   ServerLang::Type type() const override { return Type::OBJECT; }
   const char *type_string() const override { return "Object"; }
 };
 
 class Primitive : public ASTNode {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Primitive)
   ServerLang::Type type() const override { return Type::PRIMITIVE; }
   const char *type_string() const override { return "Primitive"; }
 };
 
-static const std::map<const char *, bool> keywords = {
+struct cmp_str {
+  bool operator()(char const *a, char const *b) const {
+    auto const comp_res = std::strcmp(a, b);
+    return comp_res < 0;
+  }
+};
+
+const std::map<const char *, bool, cmp_str> keywords = {
     {"var", 1}, {"const", 1}, {"def", 1}, {"return", 1},
     {"for", 1}, {"while", 1}, {"if", 1},
+};
+
+const std::map<const char *, Type, cmp_str> type_map = {
+    {"I16", Type::I16},         {"I32", Type::I32},
+    {"I64", Type::I64},         {"U8", Type::U8},
+    {"U16", Type::U16},         {"F32", Type::F32},
+    {"F64", Type::F64},         {"Bool", Type::BOOL},
+    {"Complex", Type::COMPLEX}, {"String", Type::STRING},
+    {"Void", Type::VOID},       {"Array", Type::ARRAY},
+    {"Class", Type::CLASS},     {"Struct", Type::STRUCT},
+    {"Json", Type::JSON},       {"Route", Type::ROUTE},
 };
 
 namespace InternalTypes {
 
 class I16 : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(I16)
   ServerLang::Type type() const override { return Type::I16; }
   const char *type_string() const override { return "Integer_16"; }
 };
 
 class I32 : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(I32)
   ServerLang::Type type() const override { return Type::I32; }
   const char *type_string() const override { return "Integer_32"; }
 };
 
 class I64 : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(I64)
   ServerLang::Type type() const override { return Type::I64; }
   const char *type_string() const override { return "Integer_64"; }
 };
 
 class U8 : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(U8)
   ServerLang::Type type() const override { return Type::U8; }
   const char *type_string() const override { return "Unsigned_8"; }
 };
 
 class U16 : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(U16)
   ServerLang::Type type() const override { return Type::U16; }
   const char *type_string() const override { return "Unsigned_16"; }
 };
 
 class F32 : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(F32)
   ServerLang::Type type() const override { return Type::F32; }
   const char *type_string() const override { return "Float_32"; }
 };
 
 class F64 : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(F64)
   ServerLang::Type type() const override { return Type::F64; }
   const char *type_string() const override { return "Float_64"; }
 };
 
 class Bool : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Bool)
   ServerLang::Type type() const override { return Type::BOOL; }
   const char *type_string() const override { return "Boolean"; }
 };
 
 class Complex : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Complex)
   ServerLang::Type type() const override { return Type::COMPLEX; }
   const char *type_string() const override { return "Complex"; }
 };
 
+class String : public Primitive {
+public:
+  DEFAULT_NODE_CONSTRUCTOR(String)
+  ServerLang::Type type() const override { return Type::STRING; }
+  const char *type_string() const override { return "String"; }
+};
+
 class Void : public Primitive {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Void)
   ServerLang::Type type() const override { return Type::VOID; }
   const char *type_string() const override { return "Void"; }
 };
@@ -160,30 +198,35 @@ namespace CompoundTypes {
 
 class Array : public Object {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Array)
   ServerLang::Type type() const override { return Type::ARRAY; }
   const char *type_string() const override { return "Array"; }
 };
 
 class Class : public Object {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Class)
   ServerLang::Type type() const override { return Type::CLASS; }
   const char *type_string() const override { return "Class"; }
 };
 
 class Struct : public Object {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Struct)
   ServerLang::Type type() const override { return Type::STRUCT; }
   const char *type_string() const override { return "Struct"; }
 };
 
 class Json : public Object {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Json)
   ServerLang::Type type() const override { return Type::JSON; }
   const char *type_string() const override { return "Json"; }
 };
 
 class Route : public Object {
 public:
+  DEFAULT_NODE_CONSTRUCTOR(Route)
   ServerLang::Type type() const override { return Type::ROUTE; }
   const char *type_string() const override { return "Route"; }
 };
@@ -210,6 +253,8 @@ static const ASTNode get_type_instance(const Type _t) {
     return InternalTypes::Bool{};
   case ServerLang::Type::COMPLEX:
     return InternalTypes::Complex{};
+  case ServerLang::Type::STRING:
+    return InternalTypes::String{};
   case ServerLang::Type::VOID:
     return InternalTypes::Void{};
   case ServerLang::Type::ARRAY:
@@ -229,7 +274,8 @@ static const ASTNode get_type_instance(const Type _t) {
 }
 
 static const ASTNode get_type_instance(const char *_t_string) {
-  return get_type_instance(ServerLang::TypeMap.at(_t_string));
+  auto _code = ServerLang::type_map.find(_t_string)->second;
+  return get_type_instance(_code);
 }
 
 } // namespace ServerLang
@@ -483,7 +529,7 @@ private: // helpers
       m_state = State::NO_OP;
       break;
     case Token::TokenType::IDENTIFIER:
-      if (ServerLang::keywords.find(it->const_data().c_str()) !=
+      if (ServerLang::keywords.find(it->const_data().c_str()) ==
           ServerLang::keywords.end()) {
         m_state = State::EXPRESSION;
       } else if (it->const_data() == "const") {
@@ -519,19 +565,27 @@ private: // helpers
   node check_for_variable_decl(Tokenizer::token_list::const_iterator it) {
     auto _id = it->const_data();
     node _var;
+    std::string_view _val;
     it++;
 
     if (it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
       it++;
-      if (MAP_HAS(ServerLang::TypeMap, it->const_data().c_str()) &&
+      if (MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
           it->type() == Token::TokenType::IDENTIFIER) {
-        _var = ServerLang::get_type_instance(it->const_data().c_str());
-        // Continue from here
-      }
+        auto _type_string = it->const_data();
+        _var = ServerLang::get_type_instance(_type_string.c_str());
+        std::cout << "Variable pref_type: "
+                  << static_cast<int>(_var.preferredType()) << std::endl;
+      } else if (it->type() == Token::TokenType::IDENTIFIER)
+        fprintf(stderr,
+                "<IMPL_DECL> of type: %s\nCurrently only internal types can be "
+                "implicitly declared \n",
+                it->const_data().c_str());
+    } else {
+      fprintf(stderr, "Expected Identifier after ':' \n");
     }
-
     m_state = State::NO_OP;
-    return {};
+    return _var;
   }
   node check_for_const_decl(Tokenizer::token_list::const_iterator it) {
     while (NOT_DELIMETER(it, ";")) {

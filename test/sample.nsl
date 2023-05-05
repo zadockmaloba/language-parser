@@ -17,6 +17,8 @@ const car: Class = {
 var car_instance = car::init();
 const car_instance_2 = car::init("Bugatti", "red", false);
 
+var fault: CustomObject;
+
 var test_string: String = test_func();
 
 Core::Println(test_string);

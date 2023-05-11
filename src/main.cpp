@@ -14,12 +14,15 @@
       current_token.type() == Token::TokenType::WHITE_SPACE
 
 #define NOT_DELIMETER(x, y)                                                    \
-  !(x->const_data() == y && x->type() == Token::TokenType::PUNCTUATOR)
+  !(x->type() == Token::TokenType::PUNCTUATOR && x->const_data() == y)
 
 #define MAP_HAS(x, y) (x.find(y) != x.end())
 
 #define DEFAULT_NODE_CONSTRUCTOR(x)                                            \
   x() { setPreferredType(this->type()); }
+
+#define DEBUG_ITERATOR(x)                                                      \
+  std::cout << "{{ITERATOR}}: " << x->const_data() << "\n";
 
 namespace ServerLang {
 
@@ -466,6 +469,16 @@ public: // static methods
     _token.setType(Token::TokenType::WHITE_SPACE);
     _token.setData("");
   }
+
+  static token_list get_span(token_list::const_iterator &it, const char *delim,
+                             Token::TokenType type) {
+    token_list ret;
+    while (!(it->const_data() == delim && it->type() == type)) {
+      ret.push_back(*it);
+      it++;
+    }
+    return ret;
+  }
 };
 
 class SyntaxAnalyzer {
@@ -492,25 +505,35 @@ public:
     while (itr != tokens.cend()) {
       switch (m_state) {
       case State::NO_OP:
-        // std::cout << "[NO OP]" << std::endl;
         check_for_next_possible(itr);
-        itr++;
+        // itr++;
         break;
       case State::CONST_DECL:
-        std::cout << "[CONST DECL]" << std::endl;
+        std::cout << "[CONST DECL]::begin => " << itr->const_data()
+                  << std::endl;
+        itr++;
         ret.push_back(check_for_const_decl(itr));
+        itr++;
         break;
       case State::VARIABLE_DECL:
-        std::cout << "[VAR DECL]" << std::endl;
+        std::cout << "[VAR DECL]::begin => " << itr->const_data() << std::endl;
+        itr++;
         ret.push_back(check_for_variable_decl(itr));
+        itr++;
         break;
       case State::FUNCTION_DECL:
-        std::cout << "[FUNCTION DECL]" << std::endl;
+        std::cout << "[FUNCTION DECL]::begin => " << itr->const_data()
+                  << std::endl;
+        // itr++;
         ret.push_back(check_for_fn_decl(itr));
+        itr++;
         break;
       case State::EXPRESSION:
-        std::cout << "[EXPRESSION]" << std::endl;
+        std::cout << "[EXPRESSION]::begin => " << itr->const_data()
+                  << std::endl;
+        // itr++;
         ret.push_back(check_for_expression(itr));
+        itr++;
         break;
       default:
         break;
@@ -523,10 +546,11 @@ private:
   State m_state = {State::NO_OP};
 
 private: // helpers
-  void check_for_next_possible(Tokenizer::token_list::const_iterator it) {
+  void check_for_next_possible(Tokenizer::token_list::const_iterator &it) {
     switch (it->type()) {
     case Token::TokenType::COMMENT:
       m_state = State::NO_OP;
+      it++;
       break;
     case Token::TokenType::IDENTIFIER:
       if (ServerLang::keywords.find(it->const_data().c_str()) ==
@@ -539,55 +563,94 @@ private: // helpers
       } else if (it->const_data() == "def") {
         m_state = State::FUNCTION_DECL;
       }
-      it++;
+      // it++;
       break;
     default:
       m_state = State::NO_OP;
       break;
     }
   }
-  node check_for_expression(Tokenizer::token_list::const_iterator it) {
-    while (NOT_DELIMETER(it, ";")) {
-      // TODO
-      it++;
+  node check_for_expression(Tokenizer::token_list::const_iterator &it) {
+    auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
+    std::cout << ">>> ";
+    for (auto &v : _tmp) {
+      std::cout << v.const_data();
     }
+    std::cout << std::endl;
     m_state = State::NO_OP;
     return {};
   }
-  scope check_for_compound_stmnt(Tokenizer::token_list::const_iterator it) {
+  scope check_for_compound_stmnt(Tokenizer::token_list::const_iterator &it) {
     while (NOT_DELIMETER(it, "}")) {
-      // TODO
-      it++;
+      std::cout << "Cmpnd_Sttmnt::Before: ";
+      DEBUG_ITERATOR(it)
+      std::cout << "Cmpnd_Sttmnt::After: ";
+      if (it++; it->const_data() == "{" &&
+                it->type() == Token::TokenType::PUNCTUATOR) {
+        it++;
+        check_for_compound_stmnt(it);
+      }
     }
     m_state = State::NO_OP;
+    it++;
     return {};
   }
-  node check_for_variable_decl(Tokenizer::token_list::const_iterator it) {
+  node check_for_variable_decl(Tokenizer::token_list::const_iterator &it) {
     auto _id = it->const_data();
     node _var;
     std::string_view _val;
-    it++;
 
-    if (it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
-      it++;
-      if (MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
-          it->type() == Token::TokenType::IDENTIFIER) {
+    if (it++;
+        it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
+      if (it++; MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
+                it->type() == Token::TokenType::IDENTIFIER) {
         auto _type_string = it->const_data();
         _var = ServerLang::get_type_instance(_type_string.c_str());
         std::cout << "Variable pref_type: "
                   << static_cast<int>(_var.preferredType()) << std::endl;
-      } else if (it->type() == Token::TokenType::IDENTIFIER)
+        it++;
+      } else if (it->type() == Token::TokenType::IDENTIFIER) {
         fprintf(stderr,
                 "<IMPL_DECL> of type: %s\nCurrently only internal types can be "
                 "implicitly declared \n",
                 it->const_data().c_str());
-    } else {
-      fprintf(stderr, "Expected Identifier after ':' \n");
+
+        _var = ServerLang::ASTNode{};
+        it++;
+      } else {
+        fprintf(stderr, "Expected Identifier after ':' \n");
+        m_state = State::NO_OP;
+      }
     }
+    DEBUG_ITERATOR(it)
+    if (it->const_data() == "=" &&
+        it->type() == Token::TokenType::ARITHMETIC_OPERATOR) {
+      if (it++; it->const_data() == "{" &&
+                it->type() == Token::TokenType::PUNCTUATOR) {
+        std::cout << "Var_Decl::Before: ";
+        DEBUG_ITERATOR(it)
+        it++;
+        std::cout << "Var_Decl::After: ";
+        DEBUG_ITERATOR(it)
+        check_for_compound_stmnt(it);
+      } else {
+        auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
+        std::cout << ">>> ";
+        for (auto &v : _tmp) {
+          std::cout << v.const_data();
+          // TODO: consume tokens
+        }
+        std::cout << std::endl;
+      }
+    }
+
     m_state = State::NO_OP;
     return _var;
   }
-  node check_for_const_decl(Tokenizer::token_list::const_iterator it) {
+  node check_for_const_decl(Tokenizer::token_list::const_iterator &it) {
+    return check_for_variable_decl(it); // TODO
+  }
+  node check_for_fn_call(Tokenizer::token_list::const_iterator &it) {
     while (NOT_DELIMETER(it, ";")) {
       // TODO
       it++;
@@ -595,16 +658,8 @@ private: // helpers
     m_state = State::NO_OP;
     return {};
   }
-  node check_for_fn_call(Tokenizer::token_list::const_iterator it) {
-    while (NOT_DELIMETER(it, ";")) {
-      // TODO
-      it++;
-    }
-    m_state = State::NO_OP;
-    return {};
-  }
-  node check_for_fn_decl(Tokenizer::token_list::const_iterator it) {
-    while (NOT_DELIMETER(it, ";")) {
+  node check_for_fn_decl(Tokenizer::token_list::const_iterator &it) {
+    while (NOT_DELIMETER(it, "}")) {
       // TODO
       it++;
     }

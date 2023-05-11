@@ -10,7 +10,7 @@ def test_func() : Float {
 }
 
 const car: Class = {
-    init(type: String, color: String, sedan: Bool) {
+    def init(type: String, color: String, sedan: Bool) : Void {
 
     }
 }

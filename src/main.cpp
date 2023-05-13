@@ -77,6 +77,7 @@ public:
 
 private:
   Type m_preferredType = type();
+  const char *m_id = "__NO_ID__";
 };
 
 class Scope : public ASTNode {

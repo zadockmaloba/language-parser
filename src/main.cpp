@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -530,13 +531,13 @@ public:
                   << std::endl;
         itr++;
         ret.push_back(check_for_const_decl(itr));
-        itr++;
+        // itr++;
         break;
       case State::VARIABLE_DECL:
         std::cout << "[VAR DECL]::begin => " << itr->const_data() << std::endl;
         itr++;
         ret.push_back(check_for_variable_decl(itr));
-        itr++;
+        // itr++;
         break;
       case State::FUNCTION_DECL:
         std::cout << "[FUNCTION DECL]::begin => " << itr->const_data()
@@ -563,6 +564,11 @@ private:
   State m_state = {State::NO_OP};
 
 private: // helpers
+  void move_to_next_end(Tokenizer::token_list::const_iterator &it) {
+    while (NOT_DELIMETER(it, ";")) {
+      it++;
+    }
+  }
   void check_for_next_possible(Tokenizer::token_list::const_iterator &it) {
     switch (it->type()) {
     case Token::TokenType::COMMENT:
@@ -589,11 +595,7 @@ private: // helpers
   }
   node check_for_expression(Tokenizer::token_list::const_iterator &it) {
     auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
-    std::cout << ">>> ";
-    for (auto &v : _tmp) {
-      std::cout << v.const_data();
-    }
-    std::cout << std::endl;
+    // PRINT_ITERATOR_ARRAY(_tmp);
     m_state = State::NO_OP;
     return {};
   }
@@ -637,6 +639,7 @@ private: // helpers
       } else {
         fprintf(stderr, "Expected Identifier after ':' \n");
         m_state = State::NO_OP;
+        return {};
       }
     }
     DEBUG_ITERATOR(it)
@@ -652,12 +655,8 @@ private: // helpers
         check_for_compound_stmnt(it);
       } else {
         auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
-        std::cout << ">>> ";
-        for (auto &v : _tmp) {
-          std::cout << v.const_data();
-          // TODO: consume tokens
-        }
-        std::cout << std::endl;
+        // PRINT_ITERATOR_ARRAY(_tmp);
+        it++;
       }
     }
 

@@ -69,8 +69,11 @@ public: // virtual methods
   virtual const char *type_string() const { return "Undefined"; };
 
 public:
-  void setPreferredType(const Type newType) { m_preferredType = newType; }
   Type preferredType() const { return m_preferredType; }
+  void setPreferredType(const Type newType) { m_preferredType = newType; }
+
+  const char *id() const { return m_id; }
+  void setId(const char *newId) { m_id = newId; }
 
 private:
   Type m_preferredType = type();

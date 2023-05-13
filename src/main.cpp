@@ -665,7 +665,59 @@ private: // helpers
     return _var;
   }
   node check_for_const_decl(Tokenizer::token_list::const_iterator &it) {
-    return check_for_variable_decl(it); // TODO
+    std::string _id;
+    node _var;
+    std::string_view _val;
+
+    // FIXME: This is hacky
+    if (it->const_data() == "@" && it->type() == Token::TokenType::PUNCTUATOR) {
+      it++;
+      _id = it->const_data();
+    } else
+      _id = it->const_data();
+
+    if (it++;
+        it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
+      if (it++; MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
+                it->type() == Token::TokenType::IDENTIFIER) {
+        auto _type_string = it->const_data();
+        _var = ServerLang::get_type_instance(_type_string.c_str());
+        std::cout << "Variable pref_type: "
+                  << static_cast<int>(_var.preferredType()) << std::endl;
+        it++;
+      } else if (it->type() == Token::TokenType::IDENTIFIER) {
+        fprintf(stderr,
+                "<IMPL_DECL> of type: %s\nCurrently only internal types can be "
+                "implicitly declared \n",
+                it->const_data().c_str());
+
+        _var = ServerLang::ASTNode{};
+        it++;
+      } else {
+        fprintf(stderr, "Expected Identifier after ':' \n");
+        m_state = State::NO_OP;
+      }
+    }
+    DEBUG_ITERATOR(it)
+    if (it->const_data() == "=" &&
+        it->type() == Token::TokenType::ARITHMETIC_OPERATOR) {
+      if (it++; it->const_data() == "{" &&
+                it->type() == Token::TokenType::PUNCTUATOR) {
+        std::cout << "Var_Decl::Before: ";
+        DEBUG_ITERATOR(it)
+        it++;
+        std::cout << "Var_Decl::After: ";
+        DEBUG_ITERATOR(it)
+        check_for_compound_stmnt(it);
+      } else {
+        auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
+        // PRINT_ITERATOR_ARRAY(_tmp);
+        it++;
+      }
+    }
+
+    m_state = State::NO_OP;
+    return _var;
   }
   node check_for_fn_call(Tokenizer::token_list::const_iterator &it) {
     while (NOT_DELIMETER(it, ";")) {

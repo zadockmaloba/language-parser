@@ -97,11 +97,17 @@ public:
   const char *type_string() const override { return "Object"; }
 };
 
-class Primitive : public ASTNode {
+template <typename T> class Primitive : public ASTNode {
 public:
   DEFAULT_NODE_CONSTRUCTOR(Primitive)
   ServerLang::Type type() const override { return Type::PRIMITIVE; }
   const char *type_string() const override { return "Primitive"; }
+
+  T value() const { return m_value; }
+  void setValue(const T &newValue) { m_value = newValue; }
+
+private:
+  T m_value;
 };
 
 struct cmp_str {

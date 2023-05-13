@@ -135,77 +135,77 @@ const std::map<const char *, Type, cmp_str> type_map = {
 
 namespace InternalTypes {
 
-class I16 : public Primitive {
+class I16 : public Primitive<uint16_t> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(I16)
   ServerLang::Type type() const override { return Type::I16; }
   const char *type_string() const override { return "Integer_16"; }
 };
 
-class I32 : public Primitive {
+class I32 : public Primitive<int32_t> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(I32)
   ServerLang::Type type() const override { return Type::I32; }
   const char *type_string() const override { return "Integer_32"; }
 };
 
-class I64 : public Primitive {
+class I64 : public Primitive<int64_t> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(I64)
   ServerLang::Type type() const override { return Type::I64; }
   const char *type_string() const override { return "Integer_64"; }
 };
 
-class U8 : public Primitive {
+class U8 : public Primitive<u_int8_t> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(U8)
   ServerLang::Type type() const override { return Type::U8; }
   const char *type_string() const override { return "Unsigned_8"; }
 };
 
-class U16 : public Primitive {
+class U16 : public Primitive<u_int16_t> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(U16)
   ServerLang::Type type() const override { return Type::U16; }
   const char *type_string() const override { return "Unsigned_16"; }
 };
 
-class F32 : public Primitive {
+class F32 : public Primitive<float> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(F32)
   ServerLang::Type type() const override { return Type::F32; }
   const char *type_string() const override { return "Float_32"; }
 };
 
-class F64 : public Primitive {
+class F64 : public Primitive<double> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(F64)
   ServerLang::Type type() const override { return Type::F64; }
   const char *type_string() const override { return "Float_64"; }
 };
 
-class Bool : public Primitive {
+class Bool : public Primitive<bool> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(Bool)
   ServerLang::Type type() const override { return Type::BOOL; }
   const char *type_string() const override { return "Boolean"; }
 };
 
-class Complex : public Primitive {
+class Complex : public Primitive<size_t> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(Complex)
   ServerLang::Type type() const override { return Type::COMPLEX; }
   const char *type_string() const override { return "Complex"; }
 };
 
-class String : public Primitive {
+class String : public Primitive<std::string> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(String)
   ServerLang::Type type() const override { return Type::STRING; }
   const char *type_string() const override { return "String"; }
 };
 
-class Void : public Primitive {
+class Void : public Primitive<bool> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(Void)
   ServerLang::Type type() const override { return Type::VOID; }

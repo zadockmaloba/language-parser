@@ -24,6 +24,13 @@
 #define DEBUG_ITERATOR(x)                                                      \
   std::cout << "{{ITERATOR}}: " << x->const_data() << "\n";
 
+#define PRINT_ITERATOR_ARRAY(x)                                                \
+  std::cout << ">>> ";                                                         \
+  for (auto &v : x) {                                                          \
+    std::cout << v.const_data();                                               \
+  }                                                                            \
+  std::cout << std::endl;
+
 namespace ServerLang {
 
 // Forward:

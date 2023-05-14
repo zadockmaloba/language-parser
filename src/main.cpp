@@ -32,13 +32,16 @@
   }                                                                            \
   std::cout << std::endl;
 
+#define MAKE_UNIQUE_NODE_PTR(x) std::make_unique<ServerLang::ASTNode>(x);
+
 namespace ServerLang {
 
 // Forward:
 class ASTNode;
 
 // Typedefs:
-using node_list = std::vector<ASTNode>;
+using node_ptr = std::unique_ptr<ASTNode>;
+using node_list = std::vector<node_ptr>;
 
 enum class Type {
   UNDEFINED,
@@ -52,6 +55,7 @@ enum class Type {
   BOOL,
   COMPLEX,
   STRING,
+  VARIANT,
   VOID,
   ARRAY,
   CLASS,
@@ -66,6 +70,8 @@ enum class Type {
 class ASTNode {
 
 public: // virtual methods
+  ASTNode() : m_id("__NO_ID__") {}
+  virtual ~ASTNode() {}
   virtual ServerLang::Type type() const { return Type::UNDEFINED; };
   virtual const char *type_string() const { return "Undefined"; };
 
@@ -73,12 +79,12 @@ public:
   Type preferredType() const { return m_preferredType; }
   void setPreferredType(const Type newType) { m_preferredType = newType; }
 
-  const char *id() const { return m_id; }
+  const char *id() const { return m_id.c_str(); }
   void setId(const char *newId) { m_id = newId; }
 
 private:
   Type m_preferredType = type();
-  const char *m_id = "__NO_ID__";
+  std::string m_id;
 };
 
 class Scope : public ASTNode {
@@ -129,9 +135,10 @@ const std::map<const char *, Type, cmp_str> type_map = {
     {"U16", Type::U16},         {"F32", Type::F32},
     {"F64", Type::F64},         {"Bool", Type::BOOL},
     {"Complex", Type::COMPLEX}, {"String", Type::STRING},
-    {"Void", Type::VOID},       {"Array", Type::ARRAY},
-    {"Class", Type::CLASS},     {"Struct", Type::STRUCT},
-    {"Json", Type::JSON},       {"Route", Type::ROUTE},
+    {"Variant", Type::VARIANT}, {"Void", Type::VOID},
+    {"Array", Type::ARRAY},     {"Class", Type::CLASS},
+    {"Struct", Type::STRUCT},   {"Json", Type::JSON},
+    {"Route", Type::ROUTE},
 };
 
 namespace InternalTypes {
@@ -206,6 +213,13 @@ public:
   const char *type_string() const override { return "String"; }
 };
 
+class Variant : public Primitive<std::string> {
+public:
+  DEFAULT_NODE_CONSTRUCTOR(Variant)
+  ServerLang::Type type() const override { return Type::VARIANT; }
+  const char *type_string() const override { return "Variant"; }
+};
+
 class Void : public Primitive<bool> {
 public:
   DEFAULT_NODE_CONSTRUCTOR(Void)
@@ -254,47 +268,49 @@ public:
 
 } // namespace CompoundTypes
 
-static const ASTNode get_type_instance(const Type _t) {
+static ASTNode *get_type_instance(const Type _t) {
   switch (_t) {
   case ServerLang::Type::I16:
-    return InternalTypes::I16{};
+    return new InternalTypes::I16{};
   case ServerLang::Type::I32:
-    return InternalTypes::I32{};
+    return new InternalTypes::I32{};
   case ServerLang::Type::I64:
-    return InternalTypes::I64{};
+    return new InternalTypes::I64{};
   case ServerLang::Type::U8:
-    return InternalTypes::U8{};
+    return new InternalTypes::U8{};
   case ServerLang::Type::U16:
-    return InternalTypes::U16{};
+    return new InternalTypes::U16{};
   case ServerLang::Type::F32:
-    return InternalTypes::F32{};
+    return new InternalTypes::F32{};
   case ServerLang::Type::F64:
-    return InternalTypes::F64{};
+    return new InternalTypes::F64{};
   case ServerLang::Type::BOOL:
-    return InternalTypes::Bool{};
+    return new InternalTypes::Bool{};
   case ServerLang::Type::COMPLEX:
-    return InternalTypes::Complex{};
+    return new InternalTypes::Complex{};
   case ServerLang::Type::STRING:
-    return InternalTypes::String{};
+    return new InternalTypes::String{};
+  case ServerLang::Type::VARIANT:
+    return new InternalTypes::Variant{};
   case ServerLang::Type::VOID:
-    return InternalTypes::Void{};
+    return new InternalTypes::Void{};
   case ServerLang::Type::ARRAY:
-    return CompoundTypes::Array{};
+    return new CompoundTypes::Array{};
   case ServerLang::Type::CLASS:
-    return CompoundTypes::Class{};
+    return new CompoundTypes::Class{};
   case ServerLang::Type::STRUCT:
-    return CompoundTypes::Struct{};
+    return new CompoundTypes::Struct{};
   case ServerLang::Type::JSON:
-    return CompoundTypes::Json{};
+    return new CompoundTypes::Json{};
   case ServerLang::Type::ROUTE:
-    return CompoundTypes::Route{};
+    return new CompoundTypes::Route{};
   default:
     return {};
     break;
   }
 }
 
-static const ASTNode get_type_instance(const char *_t_string) {
+static ASTNode *get_type_instance(const char *_t_string) {
   auto _code = ServerLang::type_map.find(_t_string)->second;
   return get_type_instance(_code);
 }
@@ -508,7 +524,7 @@ class SyntaxAnalyzer {
     EXPRESSION
   };
 
-  using node = ServerLang::ASTNode;
+  using node = ServerLang::node_ptr;
   using object = ServerLang::Object;
   using scope = ServerLang::Scope;
 
@@ -569,6 +585,7 @@ private: // helpers
       it++;
     }
   }
+
   void check_for_next_possible(Tokenizer::token_list::const_iterator &it) {
     switch (it->type()) {
     case Token::TokenType::COMMENT:
@@ -593,17 +610,19 @@ private: // helpers
       break;
     }
   }
+
   node check_for_expression(Tokenizer::token_list::const_iterator &it) {
     auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
     // PRINT_ITERATOR_ARRAY(_tmp);
     m_state = State::NO_OP;
     return {};
   }
-  scope check_for_compound_stmnt(Tokenizer::token_list::const_iterator &it) {
+
+  node check_for_compound_stmnt(Tokenizer::token_list::const_iterator &it) {
     while (NOT_DELIMETER(it, "}")) {
       std::cout << "Cmpnd_Sttmnt::Before: ";
       DEBUG_ITERATOR(it)
-      std::cout << "Cmpnd_Sttmnt::After: ";
+      std::cout << "Cmpnd_Sttmnt::After: " << std::endl;
       if (it++; it->const_data() == "{" &&
                 it->type() == Token::TokenType::PUNCTUATOR) {
         it++;
@@ -614,6 +633,7 @@ private: // helpers
     it++;
     return {};
   }
+
   node check_for_variable_decl(Tokenizer::token_list::const_iterator &it) {
     auto _id = it->const_data();
     node _var;
@@ -624,23 +644,33 @@ private: // helpers
       if (it++; MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
                 it->type() == Token::TokenType::IDENTIFIER) {
         auto _type_string = it->const_data();
-        _var = ServerLang::get_type_instance(_type_string.c_str());
+        auto _temp = ServerLang::get_type_instance(_type_string.c_str());
+        _temp->setId(_id.c_str());
+        _var.reset(_temp);
         std::cout << "Variable pref_type: "
-                  << static_cast<int>(_var.preferredType()) << std::endl;
+                  << static_cast<int>(_var->preferredType()) << std::endl;
         it++;
       } else if (it->type() == Token::TokenType::IDENTIFIER) {
         fprintf(stderr,
                 "<IMPL_DECL> of type: %s\nCurrently only internal types can be "
                 "implicitly declared \n",
                 it->const_data().c_str());
-
-        _var = ServerLang::ASTNode{};
+        auto _temp = ServerLang::get_type_instance("Variant");
+        _temp->setId(_id.c_str());
+        _var.reset(_temp);
+        std::cout << "Variable pref_type: "
+                  << static_cast<int>(_var->preferredType()) << std::endl;
         it++;
       } else {
         fprintf(stderr, "Expected Identifier after ':' \n");
         m_state = State::NO_OP;
-        return {};
       }
+    } else {
+      auto _temp = ServerLang::get_type_instance("Variant");
+      _temp->setId(_id.c_str());
+      _var.reset(_temp);
+      std::cout << "Variable pref_type: "
+                << static_cast<int>(_var->preferredType()) << std::endl;
     }
     DEBUG_ITERATOR(it)
     if (it->const_data() == "=" &&
@@ -663,6 +693,7 @@ private: // helpers
     m_state = State::NO_OP;
     return _var;
   }
+
   node check_for_const_decl(Tokenizer::token_list::const_iterator &it) {
     std::string _id;
     node _var;
@@ -680,22 +711,33 @@ private: // helpers
       if (it++; MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
                 it->type() == Token::TokenType::IDENTIFIER) {
         auto _type_string = it->const_data();
-        _var = ServerLang::get_type_instance(_type_string.c_str());
+        auto _temp = ServerLang::get_type_instance(_type_string.c_str());
+        _temp->setId(_id.c_str());
+        _var.reset(_temp);
         std::cout << "Variable pref_type: "
-                  << static_cast<int>(_var.preferredType()) << std::endl;
+                  << static_cast<int>(_var->preferredType()) << std::endl;
         it++;
       } else if (it->type() == Token::TokenType::IDENTIFIER) {
         fprintf(stderr,
                 "<IMPL_DECL> of type: %s\nCurrently only internal types can be "
                 "implicitly declared \n",
                 it->const_data().c_str());
-
-        _var = ServerLang::ASTNode{};
+        auto _temp = ServerLang::get_type_instance("Variant");
+        _temp->setId(_id.c_str());
+        _var.reset(_temp);
+        std::cout << "Variable pref_type: "
+                  << static_cast<int>(_var->preferredType()) << std::endl;
         it++;
       } else {
         fprintf(stderr, "Expected Identifier after ':' \n");
         m_state = State::NO_OP;
       }
+    } else {
+      auto _temp = ServerLang::get_type_instance("Variant");
+      _temp->setId(_id.c_str());
+      _var.reset(_temp);
+      std::cout << "Variable pref_type: "
+                << static_cast<int>(_var->preferredType()) << std::endl;
     }
     DEBUG_ITERATOR(it)
     if (it->const_data() == "=" &&
@@ -718,6 +760,7 @@ private: // helpers
     m_state = State::NO_OP;
     return _var;
   }
+
   node check_for_fn_call(Tokenizer::token_list::const_iterator &it) {
     while (NOT_DELIMETER(it, ";")) {
       // TODO
@@ -764,5 +807,10 @@ int main(int argc, char **argv) {
               << std::endl;
 
   SyntaxAnalyzer _st;
-  _st.analyze(tkns);
+  auto const nodes = _st.analyze(tkns);
+
+  for (auto const &v : nodes)
+    v == nullptr ? std::cout << "[_NULL_OBJECT_]" << std::endl
+                 : std::cout << v->id() << std::endl;
+  return 0;
 }

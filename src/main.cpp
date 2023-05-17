@@ -412,6 +412,20 @@ public: // static methods
         } else
           current_token.data().append(1, v);
         break;
+      case ':':
+        if (current_token.type() == Token::TokenType::PUNCTUATOR &&
+            current_token.const_data() == ":") {
+          current_token.setType(Token::TokenType::ACCESS_OPERATOR);
+          current_token.data().append(1, v);
+          end_token(current_token, list);
+        } else if (__NOT_STRING_OR_COMMENT__) {
+          end_token(current_token, list);
+          current_token.setType(Token::TokenType::PUNCTUATOR);
+          current_token.data().append(1, v);
+          // end_token(current_token, list);
+        } else
+          current_token.data().append(1, v);
+        break;
       case '$':
         if (__NOT_STRING_OR_COMMENT__) {
           current_token.setType(Token::TokenType::POINTER_OPERATOR);

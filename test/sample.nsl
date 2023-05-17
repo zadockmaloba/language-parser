@@ -1,5 +1,11 @@
 //NAISYS SERVERLANG
 
+@lib["Core"];
+@lib["Json"];
+@lib["Db"];
+
+@script["include.nsl"];
+
 Core::Println("%{0} Running on MacOS", .{"Hello"});
 
 Core::Println(RUNTIME_HTTP_BODY);

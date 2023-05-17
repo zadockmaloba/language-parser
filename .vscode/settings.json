@@ -72,7 +72,8 @@
         "vector": "cpp",
         "algorithm": "cpp",
         "__tree": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "filesystem": "cpp"
     },
     "C_Cpp.clang_format_fallbackStyle": "LLVM",
     "editor.formatOnSave": true,

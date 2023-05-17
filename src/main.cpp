@@ -64,6 +64,7 @@ enum class Type {
   ROUTE,
   SCOPE,
   OBJECT,
+  FUNCTION,
   PRIMITIVE,
 };
 
@@ -93,8 +94,13 @@ public:
   ServerLang::Type type() const override { return Type::SCOPE; }
   const char *type_string() const override { return "Scope"; }
 
-private:
+public:
+  virtual bool executable() const { return m_executable; };
+  virtual void setExecutable(bool newVal) { m_executable = newVal; };
+
+protected:
   node_list m_children;
+  bool m_executable = false;
 };
 
 class Object : public Scope {
@@ -102,6 +108,24 @@ public:
   DEFAULT_NODE_CONSTRUCTOR(Object)
   ServerLang::Type type() const override { return Type::OBJECT; }
   const char *type_string() const override { return "Object"; }
+};
+
+template <typename T> class Function : public Scope {
+public:
+  DEFAULT_NODE_CONSTRUCTOR(Function)
+  ServerLang::Type type() const override { return Type::FUNCTION; }
+  const char *type_string() const override { return "Function"; }
+
+public:
+  T value() const { return m_value; }
+  void setValue(const T &newValue) { m_value = newValue; }
+  Type return_t() const { return m_return_t; }
+  void setReturn_t(const Type newValue) { m_return_t = newValue; }
+
+private:
+  T m_value;
+  Type m_return_t = Type::VOID;
+  node_list m_parameters;
 };
 
 template <typename T> class Primitive : public ASTNode {
@@ -391,6 +415,10 @@ public: // static methods
       case 65 ... 90:  // A-Z
       case 97 ... 122: // a-z
         if (__NOT_STRING_OR_COMMENT__) {
+          // if (current_token.type() != Token::TokenType::IDENTIFIER) {
+          //   end_token(current_token, list);
+          //   current_token.setType(Token::TokenType::IDENTIFIER);
+          // }
           current_token.setType(Token::TokenType::IDENTIFIER);
           current_token.data().append(1, v);
         } else
@@ -402,7 +430,6 @@ public: // static methods
       case ')':
       case ';':
       case ',':
-      case ':':
       case '@':
         if (__NOT_STRING_OR_COMMENT__) {
           end_token(current_token, list);
@@ -527,6 +554,8 @@ public: // static methods
     }
     return ret;
   }
+
+  static const Token peek(token_list::const_iterator it) { return *it++; }
 };
 
 class SyntaxAnalyzer {
@@ -572,7 +601,7 @@ public:
       case State::FUNCTION_DECL:
         std::cout << "[FUNCTION DECL]::begin => " << itr->const_data()
                   << std::endl;
-        // itr++;
+        itr++;
         ret.push_back(check_for_fn_decl(itr));
         itr++;
         break;
@@ -594,10 +623,13 @@ private:
   State m_state = {State::NO_OP};
 
 private: // helpers
-  void move_to_next_end(Tokenizer::token_list::const_iterator &it) {
-    while (NOT_DELIMETER(it, ";")) {
+  void move_to_next_end(Tokenizer::token_list::const_iterator &it,
+                        const std::string_view &delim = ";") {
+    while (NOT_DELIMETER(it, delim)) {
+      DEBUG_ITERATOR(it)
       it++;
     }
+    it++;
   }
 
   void check_for_next_possible(Tokenizer::token_list::const_iterator &it) {
@@ -619,12 +651,19 @@ private: // helpers
       }
       // it++;
       break;
+
     default:
       m_state = State::NO_OP;
+      move_to_next_end(it);
       break;
     }
   }
-
+  void check_for_library_imports(Tokenizer::token_list::const_iterator &it) {
+    // TODO
+  }
+  void check_for_script_imports(Tokenizer::token_list::const_iterator &it) {
+    // TODO
+  }
   node check_for_expression(Tokenizer::token_list::const_iterator &it) {
     auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
     // PRINT_ITERATOR_ARRAY(_tmp);
@@ -636,14 +675,31 @@ private: // helpers
     while (NOT_DELIMETER(it, "}")) {
       std::cout << "Cmpnd_Sttmnt::Before: ";
       DEBUG_ITERATOR(it)
-      std::cout << "Cmpnd_Sttmnt::After: " << std::endl;
       if (it++; it->const_data() == "{" &&
                 it->type() == Token::TokenType::PUNCTUATOR) {
         it++;
         check_for_compound_stmnt(it);
       }
+      std::cout << "Cmpnd_Sttmnt::After: ";
+      DEBUG_ITERATOR(it)
     }
     m_state = State::NO_OP;
+    it++;
+    return {};
+  }
+
+  node check_for_parameter_list(Tokenizer::token_list::const_iterator &it) {
+    while (NOT_DELIMETER(it, ")")) {
+      std::cout << "Param_List::Before: ";
+      DEBUG_ITERATOR(it)
+      if (it++; it->const_data() == "(" &&
+                it->type() == Token::TokenType::PUNCTUATOR) {
+        it++;
+        check_for_parameter_list(it);
+      }
+      std::cout << "Param_List::After: ";
+      DEBUG_ITERATOR(it)
+    }
     it++;
     return {};
   }
@@ -784,12 +840,42 @@ private: // helpers
     return {};
   }
   node check_for_fn_decl(Tokenizer::token_list::const_iterator &it) {
-    while (NOT_DELIMETER(it, "}")) {
-      // TODO
+    std::cout << "FN_NAME: ";
+    DEBUG_ITERATOR(it)
+    auto const _id = it->const_data();
+    auto _fn = ServerLang::Function<ServerLang::node_ptr>();
+    _fn.setId(_id.c_str());
+
+    if (it++;
+        it->const_data() == "(" && it->type() == Token::TokenType::PUNCTUATOR) {
       it++;
+      check_for_parameter_list(it);
+    } else {
+      fprintf(stderr, "Expected '(' after identifer %s\n", _id.c_str());
+      move_to_next_end(it, "}");
     }
+
+    if (it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
+      it++;
+      DEBUG_ITERATOR(it)
+      _fn.setReturn_t(
+          ServerLang::type_map.find(it->const_data().c_str())->second);
+    } else {
+      fprintf(stderr, "Expected ':' after parameter list.\n");
+      move_to_next_end(it, "}");
+    }
+
+    if (it++;
+        it->const_data() == "{" && it->type() == Token::TokenType::PUNCTUATOR) {
+      it++;
+      check_for_compound_stmnt(it);
+    }
+    // while (NOT_DELIMETER(it, "}")) {
+    //   // TODO
+    //   it++;
+    // }
     m_state = State::NO_OP;
-    return {};
+    return MAKE_UNIQUE_NODE_PTR(_fn);
   }
 };
 

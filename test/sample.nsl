@@ -4,8 +4,8 @@ Core::Println("%{0} Running on MacOS", .{"Hello"});
 
 Core::Println(RUNTIME_HTTP_BODY);
 
-def test_func() : Float {
-    Core::Println("Hello from third func.");
+def test_func(var name: String = "test_func") : Float {
+    Core::Println("Hello from %{0} func.", .{name});
     return 0.24;
 }
 

@@ -603,7 +603,7 @@ public:
                   << std::endl;
         itr++;
         ret.push_back(check_for_fn_decl(itr));
-        itr++;
+        // itr++;
         break;
       case State::EXPRESSION:
         std::cout << "[EXPRESSION]::begin => " << itr->const_data()

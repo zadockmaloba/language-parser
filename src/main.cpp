@@ -869,6 +869,9 @@ private: // helpers
         it->const_data() == "{" && it->type() == Token::TokenType::PUNCTUATOR) {
       it++;
       check_for_compound_stmnt(it);
+    } else {
+      fprintf(stderr, "Expected '{' after function type.\n");
+      move_to_next_end(it, "}");
     }
     // while (NOT_DELIMETER(it, "}")) {
     //   // TODO

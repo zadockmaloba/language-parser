@@ -873,10 +873,7 @@ private: // helpers
       fprintf(stderr, "Expected '{' after function type.\n");
       move_to_next_end(it, "}");
     }
-    // while (NOT_DELIMETER(it, "}")) {
-    //   // TODO
-    //   it++;
-    // }
+
     m_state = State::NO_OP;
     return MAKE_UNIQUE_NODE_PTR(_fn);
   }

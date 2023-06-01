@@ -2,6 +2,8 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <random>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -70,6 +72,29 @@ enum class Type {
   OBJECT,
   FUNCTION,
   PRIMITIVE,
+  EXPRESSION,
+  ARITHMETICEXPRESSION,
+  LOGICALEXPRESSION,
+  ASSIGNMENTEXPRESSION,
+  CALLEXPRESSION,
+  ACCESSEXPRESSION,
+};
+
+enum class Operators {
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+  INCR,
+  DCR,
+  AND,
+  OR,
+  XOR,
+  NAND,
+  NOR,
+  ASGN,
+  CALL,
+  ACC
 };
 
 class ASTNode {
@@ -87,9 +112,12 @@ public:
   const char *id() const { return m_id.c_str(); }
   void setId(const char *newId) { m_id = newId; }
 
+  GET_SET(parent, ASTNode *, virtual)
+
 private:
   Type m_preferredType = type();
   std::string m_id;
+  ASTNode *m_parent;
 };
 
 class Scope : public ASTNode {
@@ -102,7 +130,7 @@ public:
   virtual bool executable() const { return m_executable; };
   virtual void setExecutable(bool newVal) { m_executable = newVal; };
 
-protected:
+private:
   node_list m_children;
   bool m_executable = false;
 };
@@ -144,6 +172,81 @@ public:
 private:
   T m_value;
 };
+
+class Expression : public ASTNode {
+public:
+  DEFAULT_NODE_CONSTRUCTOR(Expression)
+  ServerLang::Type type() const override { return Type::EXPRESSION; }
+  const char *type_string() const override { return "Expression"; }
+
+public: // virtual methods
+  GET_SET(opr, Operators, virtual)
+  GET_SET(lhs, ASTNode *, virtual)
+  GET_SET(rhs, ASTNode *, virtual)
+  virtual node_ptr exec() = 0;
+
+private:
+  ASTNode *m_lhs, *m_rhs;
+  Operators m_opr;
+};
+
+namespace Expressions {
+class AccessExpression : public Expression {
+public:
+  AccessExpression(ASTNode *_lhs, ASTNode *_rhs, const Operators _op) {
+    this->setlhs(_lhs);
+    this->setrhs(_rhs);
+    this->setopr(_op);
+  };
+  ServerLang::Type type() const override { return Type::ACCESSEXPRESSION; }
+  const char *type_string() const override { return "AccessExpression"; }
+  node_ptr exec() override { return {}; }
+};
+class ArithmeticExpression : public Expression {
+public:
+  ArithmeticExpression(ASTNode *_lhs, ASTNode *_rhs, const Operators _op) {
+    this->setlhs(_lhs);
+    this->setrhs(_rhs);
+    this->setopr(_op);
+  };
+  ServerLang::Type type() const override { return Type::ARITHMETICEXPRESSION; }
+  const char *type_string() const override { return "ArithmeticExpression"; }
+  node_ptr exec() override { return {}; }
+};
+class AssignmentExpression : public Expression {
+public:
+  AssignmentExpression(ASTNode *_lhs, ASTNode *_rhs, const Operators _op) {
+    this->setlhs(_lhs);
+    this->setrhs(_rhs);
+    this->setopr(_op);
+  };
+  ServerLang::Type type() const override { return Type::ASSIGNMENTEXPRESSION; }
+  const char *type_string() const override { return "AssignmentExpression"; }
+  node_ptr exec() override { return {}; }
+};
+class CallExpression : public Expression {
+public:
+  CallExpression(ASTNode *_lhs, ASTNode *_rhs, const Operators _op) {
+    this->setlhs(_lhs);
+    this->setrhs(_rhs);
+    this->setopr(_op);
+  };
+  ServerLang::Type type() const override { return Type::CALLEXPRESSION; }
+  const char *type_string() const override { return "CallExpression"; }
+  node_ptr exec() override { return {}; }
+};
+class LogicalExpression : public Expression {
+public:
+  LogicalExpression(ASTNode *_lhs, ASTNode *_rhs, const Operators _op) {
+    this->setlhs(_lhs);
+    this->setrhs(_rhs);
+    this->setopr(_op);
+  };
+  ServerLang::Type type() const override { return Type::LOGICALEXPRESSION; }
+  const char *type_string() const override { return "LogicalExpression"; }
+  node_ptr exec() override { return {}; }
+};
+} // namespace Expressions
 
 struct cmp_str {
   bool operator()(char const *a, char const *b) const {
@@ -669,10 +772,33 @@ private: // helpers
     // TODO
   }
   node check_for_expression(Tokenizer::token_list::const_iterator &it) {
-    auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
+    auto const _tmp =
+        Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
+
+    node _ret;
+
+    for (auto &j : _tmp) {
+      if (j.const_data() == "(" && j.type() == Token::TokenType::PUNCTUATOR) {
+        auto _exp = new ServerLang::Expressions::CallExpression{
+            0, 0, ServerLang::Operators::CALL};
+
+        _ret.reset(_exp);
+        break;
+      }
+
+      else if (j.const_data() == "=" &&
+               j.type() == Token::TokenType::PUNCTUATOR) {
+        auto _exp = new ServerLang::Expressions::AssignmentExpression{
+            0, 0, ServerLang::Operators::ASGN};
+
+        _ret.reset(_exp);
+        break;
+      }
+    }
+
     // PRINT_ITERATOR_ARRAY(_tmp);
     m_state = State::NO_OP;
-    return {};
+    return _ret;
   }
 
   node check_for_compound_stmnt(Tokenizer::token_list::const_iterator &it) {
@@ -847,8 +973,8 @@ private: // helpers
     std::cout << "FN_NAME: ";
     DEBUG_ITERATOR(it)
     auto const _id = it->const_data();
-    auto _fn = ServerLang::Function<ServerLang::node_ptr>();
-    _fn.setId(_id.c_str());
+    auto _fn = new ServerLang::Function<ServerLang::node_ptr>();
+    _fn->setId(_id.c_str());
 
     if (it++;
         it->const_data() == "(" && it->type() == Token::TokenType::PUNCTUATOR) {
@@ -862,7 +988,7 @@ private: // helpers
     if (it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
       it++;
       DEBUG_ITERATOR(it)
-      _fn.setReturn_t(
+      _fn->setReturn_t(
           ServerLang::type_map.find(it->const_data().c_str())->second);
     } else {
       fprintf(stderr, "Expected ':' after parameter list.\n");
@@ -879,7 +1005,9 @@ private: // helpers
     }
 
     m_state = State::NO_OP;
-    return MAKE_UNIQUE_NODE_PTR(_fn);
+    node _ret;
+    _ret.reset(_fn);
+    return _ret;
   }
 };
 
@@ -913,8 +1041,12 @@ int main(int argc, char **argv) {
   SyntaxAnalyzer _st;
   auto const nodes = _st.analyze(tkns);
 
-  for (auto const &v : nodes)
-    v == nullptr ? std::cout << "[_NULL_OBJECT_]" << std::endl
-                 : std::cout << v->id() << std::endl;
+  for (auto const &v : nodes) {
+
+    if (v != nullptr) {
+      std::cout << v->id() << " : " << v->type_string() << std::endl;
+    } else
+      std::cout << "[_NULL_OBJECT_]" << std::endl;
+  }
   return 0;
 }

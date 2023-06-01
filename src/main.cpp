@@ -34,6 +34,10 @@
 
 #define MAKE_UNIQUE_NODE_PTR(x) std::make_unique<ServerLang::ASTNode>(x);
 
+#define GET_SET(x, _type, _virt)                                               \
+  _virt _type x() const { return m_##x; }                                      \
+  _virt void set##x(_type newValue) { m_##x = newValue; }
+
 namespace ServerLang {
 
 // Forward:

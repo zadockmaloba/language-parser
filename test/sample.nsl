@@ -10,7 +10,7 @@ Core::Println("%{0} Running on MacOS", .{"Hello"});
 
 Core::Println(RUNTIME_HTTP_BODY);
 
-def test_func(var name: String = "test_func") : Float {
+def function_a(var name: String = "test_func") : Float {
     Core::Println("Hello from %{0} func.", .{name});
     return 0.24;
 }
@@ -36,6 +36,13 @@ const @[/home]: Route = {
     .Body = "<h1>Serverlang</h1>";
 
     Core::Println("Home path");
+}
+
+const @[/home/test]: Route = {
+    .Header = "text/html";
+    .Body = "<h1>Test Page</h1>";
+
+    Core::Println("Test path");
 }
 
 const @[/*]: Route = {

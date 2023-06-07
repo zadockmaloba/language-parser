@@ -1017,6 +1017,12 @@ public:
   ~Parser() {}
 };
 
+class Runtime {
+public:
+  Runtime() = default;
+  ~Runtime() {}
+};
+
 int main(int argc, char **argv) {
 
   auto _file = std::fstream();

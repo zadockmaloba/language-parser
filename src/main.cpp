@@ -127,6 +127,10 @@ public:
   const char *type_string() const override { return "Scope"; }
 
 public:
+  node_list &children() { return m_children; }
+  const node_list &children_const() const { return m_children; }
+
+public:
   virtual bool executable() const { return m_executable; };
   virtual void setExecutable(bool newVal) { m_executable = newVal; };
 

@@ -806,20 +806,25 @@ private: // helpers
   }
 
   node check_for_compound_stmnt(Tokenizer::token_list::const_iterator &it) {
+    node _ret; //= MAKE_UNIQUE_NODE_PTR(ServerLang::Scope{});
+    auto _tmp = new ServerLang::Scope;
+    _ret.reset(_tmp);
     while (NOT_DELIMETER(it, "}")) {
       std::cout << "Cmpnd_Sttmnt::Before: ";
       DEBUG_ITERATOR(it)
       if (it++; it->const_data() == "{" &&
                 it->type() == Token::TokenType::PUNCTUATOR) {
         it++;
-        check_for_compound_stmnt(it);
+        // auto _tmp = static_cast<ServerLang::Scope *>(_ret.get());
+        //_tmp->setchildren({check_for_compound_stmnt(it)});
+        _tmp->children().push_back(std::move(check_for_compound_stmnt(it)));
       }
       std::cout << "Cmpnd_Sttmnt::After: ";
       DEBUG_ITERATOR(it)
     }
     m_state = State::NO_OP;
     it++;
-    return {};
+    return _ret;
   }
 
   node check_for_parameter_list(Tokenizer::token_list::const_iterator &it) {

@@ -114,10 +114,13 @@ public:
 
   GET_SET(parent, ASTNode *, virtual)
 
+  node_list &children() { return m_children; }
+  const node_list &children_const() const { return m_children; }
+
 private:
   Type m_preferredType = type();
   std::string m_id;
-  ASTNode *m_parent;
+  node_list m_children;
 };
 
 class Scope : public ASTNode {
@@ -127,15 +130,14 @@ public:
   const char *type_string() const override { return "Scope"; }
 
 public:
-  node_list &children() { return m_children; }
-  const node_list &children_const() const { return m_children; }
+  // node_list &children() { return m_children; }
+  // const node_list &children_const() const { return m_children; }
 
 public:
   virtual bool executable() const { return m_executable; };
   virtual void setExecutable(bool newVal) { m_executable = newVal; };
 
 private:
-  node_list m_children;
   bool m_executable = false;
 };
 
@@ -958,7 +960,7 @@ private: // helpers
         it++;
         std::cout << "Var_Decl::After: ";
         DEBUG_ITERATOR(it)
-        check_for_compound_stmnt(it);
+        _var->children().emplace_back(std::move(check_for_compound_stmnt(it)));
       } else {
         auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
         // PRINT_ITERATOR_ARRAY(_tmp);

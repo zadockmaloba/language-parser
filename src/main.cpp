@@ -1022,6 +1022,21 @@ private: // helpers
     _ret.reset(_fn);
     return _ret;
   }
+
+public: // Static members
+  static void print_tree(const ServerLang::node_list &_l,
+                         const int offset = 0) {
+    for (auto const &v : _l) {
+      if (v != nullptr) {
+        std::cout << std::string(" ", offset) << " | " << v->id() << " : "
+                  << v->type_string() << std::endl;
+        if (v->children_const().size()) {
+          print_tree(v->children_const(), 3);
+        }
+      } else
+        std::cout << "[_NULL_OBJECT_]" << std::endl;
+    }
+  }
 };
 
 class Parser {
@@ -1060,12 +1075,6 @@ int main(int argc, char **argv) {
   SyntaxAnalyzer _st;
   auto const nodes = _st.analyze(tkns);
 
-  for (auto const &v : nodes) {
-
-    if (v != nullptr) {
-      std::cout << v->id() << " : " << v->type_string() << std::endl;
-    } else
-      std::cout << "[_NULL_OBJECT_]" << std::endl;
-  }
+  SyntaxAnalyzer::print_tree(nodes);
   return 0;
 }

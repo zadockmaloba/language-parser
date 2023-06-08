@@ -118,6 +118,7 @@ public:
   const node_list &children_const() const { return m_children; }
 
 private:
+  ASTNode *m_parent;
   Type m_preferredType = type();
   std::string m_id;
   node_list m_children;
@@ -138,6 +139,7 @@ public:
   virtual void setExecutable(bool newVal) { m_executable = newVal; };
 
 private:
+  // node_list m_children;
   bool m_executable = false;
 };
 

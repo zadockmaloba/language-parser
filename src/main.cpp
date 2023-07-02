@@ -459,6 +459,7 @@ static ASTNode *get_type_instance(const char *_t_string) {
 class Token {
 public:
   enum class TokenType {
+    GARBAGE_TYPE,
     WHITE_SPACE,
     COMMENT,
     KEYWORD,

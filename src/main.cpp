@@ -696,6 +696,7 @@ public:
 public:
   const ServerLang::node_list analyze(const Tokenizer::token_list &tokens) {
     ServerLang::node_list ret;
+    // State _i_state{State::NO_OP};
     auto itr = tokens.cbegin();
     while (itr != tokens.cend()) {
       switch (m_state) {

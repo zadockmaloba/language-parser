@@ -684,6 +684,8 @@ class SyntaxAnalyzer {
   };
 
   using node = ServerLang::node_ptr;
+  using node_list = ServerLang::node_list;
+  using token_list = Tokenizer::token_list;
   using object = ServerLang::Object;
   using scope = ServerLang::Scope;
 

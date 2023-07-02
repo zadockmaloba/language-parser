@@ -6,13 +6,12 @@
 
 @script["include.nsl"];
 
-Core::Println("%{0} Running on MacOS", .{"Hello"});
+Core::Println("%{0} Running on MacOS", "Hello");
 
 Core::Println(RUNTIME_HTTP_BODY);
 
 def function_a(var name: String = "test_func") : Float {
-    Core::Println("Hello from %{0} func.", .{name});
-    return 0.24;
+    Core::Println("Hello from %{0} func.", name);
 }
 
 const car: Class = {
@@ -23,9 +22,9 @@ const car: Class = {
 var car_instance = car::init();
 const car_instance_2 = car::init("Bugatti", "red", false);
 
-var fault: CustomObject = {}
+var fault: CustomObject = null;
 
-var int2: I16 = {}
+var int2: I16 = 0;
 
 var test_string: String = test_func();
 

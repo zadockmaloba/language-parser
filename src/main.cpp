@@ -1029,10 +1029,11 @@ public: // Static members
                          const int offset = 0) {
     for (auto const &v : _l) {
       if (v != nullptr) {
-        std::cout << std::string(" ", offset) << " | " << v->id() << " : "
-                  << v->type_string() << std::endl;
+        auto str = std::string(offset, '.');
+        fprintf(stdout, "%s| %s : %s\n", str.c_str(), v->id(),
+                v->type_string());
         if (v->children_const().size()) {
-          print_tree(v->children_const(), 3);
+          print_tree(v->children_const(), offset + 3);
         }
       } else
         std::cout << "[_NULL_OBJECT_]" << std::endl;

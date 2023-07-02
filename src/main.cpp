@@ -742,6 +742,7 @@ private:
   State m_state = {State::NO_OP};
 
 private: // helpers
+         // TODO: Prevent infinite loop on syntax error
   void move_to_next_end(Tokenizer::token_list::const_iterator &it,
                         const std::string_view &delim = ";") {
     while (NOT_DELIMETER(it, delim)) {

@@ -814,23 +814,39 @@ private: // helpers
     return _ret;
   }
 
-  node check_for_compound_stmnt(Tokenizer::token_list::const_iterator &it) {
-    node _ret; //= MAKE_UNIQUE_NODE_PTR(ServerLang::Scope{});
-    auto _tmp = new ServerLang::Scope;
-    _ret.reset(_tmp);
-    while (NOT_DELIMETER(it, "}")) {
+  token_list
+  get_compound_stmnt_nodes(Tokenizer::token_list::const_iterator &it) {
+    token_list ret;
+    int brace_count = 1;
+    while (brace_count != 0) {
       std::cout << "Cmpnd_Sttmnt::Before: ";
       DEBUG_ITERATOR(it)
-      if (it++; it->const_data() == "{" &&
-                it->type() == Token::TokenType::PUNCTUATOR) {
+      if (it->const_data() == "{" && it->type() == Token::TokenType::PUNCTUATOR)
+        brace_count += 1;
+      else if (it->const_data() == "}" &&
+               it->type() == Token::TokenType::PUNCTUATOR)
+        brace_count -= 1;
+
+      if (brace_count > 0) { // FIXME: Find a better way to do this
+        ret.push_back(*it);
         it++;
-        // auto _tmp = static_cast<ServerLang::Scope *>(_ret.get());
-        //_tmp->setchildren({check_for_compound_stmnt(it)});
-        _tmp->children().push_back(std::move(check_for_compound_stmnt(it)));
       }
       std::cout << "Cmpnd_Sttmnt::After: ";
       DEBUG_ITERATOR(it)
     }
+    return ret;
+  }
+
+  node check_for_compound_stmnt(Tokenizer::token_list::const_iterator &it) {
+    node _ret; //= MAKE_UNIQUE_NODE_PTR(ServerLang::Scope{});
+    auto _tmp = new ServerLang::Scope;
+    _ret.reset(_tmp);
+    m_state = State::NO_OP;
+    auto _eval = analyze(get_compound_stmnt_nodes(it));
+    for (int i = 0; i < _eval.size(); ++i)
+      // FIXME: CUrrently not appending child nodes
+      _tmp->children().emplace_back(std::move(_eval.at(i)));
+    //_tmp->setChildren(_eval);
     m_state = State::NO_OP;
     it++;
     return _ret;

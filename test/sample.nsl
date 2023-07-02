@@ -47,15 +47,6 @@ const @[/home/test]: Route = {
 
 const @[/*]: Route = {
 
-    const conn: Json = {
-        "db_type":"QPSQL",
-        "db_name":"postgres",
-        "db_user":"postgres",
-        "db_password":"postgres",
-        "db_host":"localhost",
-        "db_port":5432
-    }
-
     var host = conn["db_host"];
 
     var test_params = RUNTIME_HTTP_PARAMS["test2"];

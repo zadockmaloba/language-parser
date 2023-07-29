@@ -755,6 +755,16 @@ private: // helpers
     it++;
   }
 
+  void err_expected_token(Tokenizer::token_list::const_iterator &it,
+                          const char *_exp) {
+    fprintf(stderr, "Expected token '%s'. Got token '%i :: %s'", _exp,
+            it->type(), it->const_data().c_str());
+    while (it->type() != Token::TokenType::GARBAGE_TYPE) {
+      it++;
+    }
+    m_state = State::TERMINATE_OPR;
+  }
+
   void check_for_next_possible(Tokenizer::token_list::const_iterator &it) {
     switch (it->type()) {
     case Token::TokenType::COMMENT:
@@ -900,7 +910,7 @@ private: // helpers
                   << static_cast<int>(_var->preferredType()) << std::endl;
         it++;
       } else {
-        fprintf(stderr, "Expected Identifier after ':' \n");
+        err_expected_token(it, "Identifier");
         m_state = State::NO_OP;
       }
     } else {
@@ -926,6 +936,8 @@ private: // helpers
         // PRINT_ITERATOR_ARRAY(_tmp);
         it++;
       }
+    } else {
+      err_expected_token(it, "=");
     }
 
     m_state = State::NO_OP;
@@ -967,7 +979,7 @@ private: // helpers
                   << static_cast<int>(_var->preferredType()) << std::endl;
         it++;
       } else {
-        fprintf(stderr, "Expected Identifier after ':' \n");
+        err_expected_token(it, "Identifier");
         m_state = State::NO_OP;
       }
     } else {
@@ -993,6 +1005,8 @@ private: // helpers
         // PRINT_ITERATOR_ARRAY(_tmp);
         it++;
       }
+    } else {
+      err_expected_token(it, "=");
     }
 
     m_state = State::NO_OP;
@@ -1019,8 +1033,7 @@ private: // helpers
       it++;
       check_for_parameter_list(it);
     } else {
-      fprintf(stderr, "Expected '(' after identifer %s\n", _id.c_str());
-      move_to_next_end(it, "}");
+      err_expected_token(it, "(");
     }
 
     if (it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
@@ -1029,8 +1042,7 @@ private: // helpers
       _fn->setReturn_t(
           ServerLang::type_map.find(it->const_data().c_str())->second);
     } else {
-      fprintf(stderr, "Expected ':' after parameter list.\n");
-      move_to_next_end(it, "}");
+      err_expected_token(it, ":");
     }
 
     if (it++;
@@ -1038,8 +1050,7 @@ private: // helpers
       it++;
       check_for_compound_stmnt(it);
     } else {
-      fprintf(stderr, "Expected '{' after function type.\n");
-      move_to_next_end(it, "}");
+      err_expected_token(it, "{");
     }
 
     m_state = State::NO_OP;

@@ -732,6 +732,8 @@ public:
         ret.push_back(check_for_expression(itr));
         itr++;
         break;
+      case State::TERMINATE_OPR:
+        return ret;
       default:
         break;
       }

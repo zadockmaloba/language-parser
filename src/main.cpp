@@ -814,7 +814,7 @@ private: // helpers
       }
 
       else if (j.const_data() == "=" &&
-               j.type() == Token::TokenType::PUNCTUATOR) {
+               j.type() == Token::TokenType::ARITHMETIC_OPERATOR) {
         auto _exp = new ServerLang::Expressions::AssignmentExpression{
             0, 0, ServerLang::Operators::ASGN};
 

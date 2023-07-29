@@ -761,6 +761,7 @@ private: // helpers
       m_state = State::NO_OP;
       it++;
       break;
+    case Token::TokenType::ACCESS_OPERATOR:
     case Token::TokenType::IDENTIFIER:
       if (ServerLang::keywords.find(it->const_data().c_str()) ==
           ServerLang::keywords.end()) {

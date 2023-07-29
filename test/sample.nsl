@@ -31,15 +31,15 @@ var test_string: String = test_func();
 Core::Println(test_string);
 
 const @[/home]: Route = {
-    .Header = "text/html";
-    .Body = "<h1>Serverlang</h1>";
+    This.Header = "text/html";
+    This.Body = "<h1>Serverlang</h1>";
 
     Core::Println("Home path");
 }
 
 const @[/home/test]: Route = {
-    .Header = "text/html";
-    .Body = "<h1>Test Page</h1>";
+    This.Header = "text/html";
+    This.Body = "<h1>Test Page</h1>";
 
     Core::Println("Test path");
 }
@@ -67,6 +67,6 @@ const @[/*]: Route = {
 
     Core::Db::Close(dbh_1);
 
-    .Header = "application/json";
-    .Body = mdl;
+    This.Header = "application/json";
+    This.Body = mdl;
 }

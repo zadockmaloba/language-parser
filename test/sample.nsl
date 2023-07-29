@@ -10,7 +10,7 @@ Core::Println("%{0} Running on MacOS", "Hello");
 
 Core::Println(RUNTIME_HTTP_BODY);
 
-def function_a(var name: String = "test_func") : Float {
+def function_a (var name: String = "test_func") : Float {
     Core::Println("Hello from %{0} func.", name);
 }
 

@@ -680,7 +680,8 @@ class SyntaxAnalyzer {
     VARIABLE_DECL,
     CONST_DECL,
     FUNCTION_DECL,
-    EXPRESSION
+    EXPRESSION,
+    TERMINATE_OPR
   };
 
   using node = ServerLang::node_ptr;

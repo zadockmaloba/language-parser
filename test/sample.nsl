@@ -46,9 +46,9 @@ const @[/home/test]: Route = {
 
 const @[/*]: Route = {
 
-    var host = conn["db_host"];
+    //var host = conn["db_host"];
 
-    var test_params = RUNTIME_HTTP_PARAMS["test2"];
+    //var test_params = RUNTIME_HTTP_PARAMS["test2"];
 
     Core::Println(host);
 

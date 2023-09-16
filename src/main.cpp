@@ -757,7 +757,7 @@ private: // helpers
 
   void err_expected_token(Tokenizer::token_list::const_iterator &it,
                           const char *_exp) {
-    fprintf(stderr, "Expected token '%s'. Got token '%i :: %s'", _exp,
+    fprintf(stderr, "[Error]: Expected token '%s'. Got token '%i :: %s'", _exp,
             it->type(), it->const_data().c_str());
     while (it->type() != Token::TokenType::GARBAGE_TYPE) {
       it++;
@@ -933,6 +933,10 @@ private: // helpers
         check_for_compound_stmnt(it);
       } else {
         auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
+        /*auto _lst = analyze(_tmp);
+        assert(_lst.size() <= 1);
+
+        _var->children().emplace_back(std::move(_lst.at(0)));*/
         // PRINT_ITERATOR_ARRAY(_tmp);
         it++;
       }
@@ -1002,6 +1006,10 @@ private: // helpers
         _var->children().emplace_back(std::move(check_for_compound_stmnt(it)));
       } else {
         auto _tmp = Tokenizer::get_span(it, ";", Token::TokenType::PUNCTUATOR);
+        /*auto _lst = analyze(_tmp);
+        assert(_lst.size() <= 1);
+
+        _var->children().emplace_back(std::move(_lst.at(0)));*/
         // PRINT_ITERATOR_ARRAY(_tmp);
         it++;
       }
@@ -1076,6 +1084,7 @@ public: // Static members
   }
 };
 
+// TODO
 class Parser {
 public:
   Parser() = default;
@@ -1086,6 +1095,31 @@ class Runtime {
 public:
   Runtime() = default;
   ~Runtime() {}
+
+public:
+  const ServerLang::node_ptr eval(const ServerLang::node_list &_nodes) {
+    for (int i = 0; i < _nodes.size(); ++i) {
+      switch (_nodes[i]->type()) {
+      case ServerLang::Type{1}... ServerLang::Type{11}:
+      case ServerLang::Type::FUNCTION:
+      case ServerLang::Type::CLASS:
+      case ServerLang::Type::ROUTE: {
+        std::cout << "Adding variable declaration: " << _nodes[i]->id()
+                  << std::endl;
+        const char *_id = _nodes[i]->id();
+        // auto _pair = std::make_pair();
+        // decl_heap.insert(std::make_pair(std::string{_id}, std::move(v)));
+        decl_heap.insert_or_assign(std::string{_id}, i);
+      }
+      default:
+        break;
+      }
+    }
+    return {};
+  }
+
+private:
+  std::map<const std::string, int> decl_heap;
 };
 
 int main(int argc, char **argv) {
@@ -1113,5 +1147,8 @@ int main(int argc, char **argv) {
   auto const nodes = _st.analyze(tkns);
 
   SyntaxAnalyzer::print_tree(nodes);
+
+  Runtime _rt;
+  _rt.eval(nodes);
   return 0;
 }

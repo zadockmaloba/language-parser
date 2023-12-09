@@ -482,7 +482,7 @@ public: // Get, Set
   TokenType type() const { return m_type; }
   void setType(const TokenType newType) { m_type = newType; }
 
-  const std::string &const_data() const { return m_data; }
+  const std::string_view const_data() const { return m_data; }
   std::string &data() { return m_data; }
   void setData(const std::string &newData) { m_data = newData; }
 
@@ -514,7 +514,7 @@ public:
   ~Tokenizer() {}
 
 public: // static methods
-  static const token_list evaluate(const std::string_view &source) {
+  static const token_list evaluate(std::string_view source) {
     token_list list;
     Token current_token;
     for (auto const &v : source) {
@@ -666,12 +666,12 @@ public: // static methods
     token_list ret;
     while (!(it->const_data() == delim && it->type() == type)) {
       ret.push_back(*it);
-      it++;
+      ++it;
     }
     return ret;
   }
 
-  static const Token peek(token_list::const_iterator it) { return *it++; }
+  static const Token peek(token_list::const_iterator it) { return *++it; }
 };
 
 class SyntaxAnalyzer {
@@ -750,17 +750,17 @@ private: // helpers
                         const std::string_view &delim = ";") {
     while (NOT_DELIMETER(it, delim)) {
       DEBUG_ITERATOR(it)
-      it++;
+      ++it;
     }
-    it++;
+    ++it;
   }
 
   void err_expected_token(Tokenizer::token_list::const_iterator &it,
                           const char *_exp) {
     fprintf(stderr, "[Error]: Expected token '%s'. Got token '%i :: %s'", _exp,
-            it->type(), it->const_data().c_str());
+            it->type(), it->const_data().data());
     while (it->type() != Token::TokenType::GARBAGE_TYPE) {
-      it++;
+      ++it;
     }
     m_state = State::TERMINATE_OPR;
   }
@@ -769,11 +769,11 @@ private: // helpers
     switch (it->type()) {
     case Token::TokenType::COMMENT:
       m_state = State::NO_OP;
-      it++;
+      ++it;
       break;
     case Token::TokenType::ACCESS_OPERATOR:
     case Token::TokenType::IDENTIFIER:
-      if (ServerLang::keywords.find(it->const_data().c_str()) ==
+      if (ServerLang::keywords.find(it->const_data().data()) ==
           ServerLang::keywords.end()) {
         m_state = State::EXPRESSION;
       } else if (it->const_data() == "const") {
@@ -783,7 +783,7 @@ private: // helpers
       } else if (it->const_data() == "def") {
         m_state = State::FUNCTION_DECL;
       }
-      // it++;
+      // ++it;
       break;
 
     default:
@@ -843,7 +843,7 @@ private: // helpers
 
       if (brace_count > 0) { // FIXME: Find a better way to do this
         ret.push_back(*it);
-        it++;
+        ++it;
       }
       std::cout << "Cmpnd_Sttmnt::After: ";
       DEBUG_ITERATOR(it)
@@ -862,7 +862,7 @@ private: // helpers
       _tmp->children().emplace_back(std::move(_eval.at(i)));
     //_tmp->setChildren(_eval);
     m_state = State::NO_OP;
-    it++;
+    ++it;
     return _ret;
   }
 
@@ -870,15 +870,15 @@ private: // helpers
     while (NOT_DELIMETER(it, ")")) {
       std::cout << "Param_List::Before: ";
       DEBUG_ITERATOR(it)
-      if (it++; it->const_data() == "(" &&
+      if (++it; it->const_data() == "(" &&
                 it->type() == Token::TokenType::PUNCTUATOR) {
-        it++;
+        ++it;
         check_for_parameter_list(it);
       }
       std::cout << "Param_List::After: ";
       DEBUG_ITERATOR(it)
     }
-    it++;
+    ++it;
     return {};
   }
 
@@ -887,35 +887,35 @@ private: // helpers
     node _var;
     std::string_view _val;
 
-    if (it++;
+    if (++it;
         it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
-      if (it++; MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
+      if (++it; MAP_HAS(ServerLang::type_map, it->const_data().data()) &&
                 it->type() == Token::TokenType::IDENTIFIER) {
         auto _type_string = it->const_data();
-        auto _temp = ServerLang::get_type_instance(_type_string.c_str());
-        _temp->setId(_id.c_str());
+        auto _temp = ServerLang::get_type_instance(_type_string.data());
+        _temp->setId(_id.data());
         _var.reset(_temp);
         std::cout << "Variable pref_type: "
                   << static_cast<int>(_var->preferredType()) << std::endl;
-        it++;
+        ++it;
       } else if (it->type() == Token::TokenType::IDENTIFIER) {
         fprintf(stderr,
                 "<IMPL_DECL> of type: %s\nCurrently only internal types can be "
                 "implicitly declared \n",
-                it->const_data().c_str());
+                it->const_data().data());
         auto _temp = ServerLang::get_type_instance("Variant");
-        _temp->setId(_id.c_str());
+        _temp->setId(_id.data());
         _var.reset(_temp);
         std::cout << "Variable pref_type: "
                   << static_cast<int>(_var->preferredType()) << std::endl;
-        it++;
+        ++it;
       } else {
         err_expected_token(it, "Identifier");
         m_state = State::NO_OP;
       }
     } else {
       auto _temp = ServerLang::get_type_instance("Variant");
-      _temp->setId(_id.c_str());
+      _temp->setId(_id.data());
       _var.reset(_temp);
       std::cout << "Variable pref_type: "
                 << static_cast<int>(_var->preferredType()) << std::endl;
@@ -923,11 +923,11 @@ private: // helpers
     DEBUG_ITERATOR(it)
     if (it->const_data() == "=" &&
         it->type() == Token::TokenType::ARITHMETIC_OPERATOR) {
-      if (it++; it->const_data() == "{" &&
+      if (++it; it->const_data() == "{" &&
                 it->type() == Token::TokenType::PUNCTUATOR) {
         std::cout << "Var_Decl::Before: ";
         DEBUG_ITERATOR(it)
-        it++;
+        ++it;
         std::cout << "Var_Decl::After: ";
         DEBUG_ITERATOR(it)
         check_for_compound_stmnt(it);
@@ -938,7 +938,7 @@ private: // helpers
 
         _var->children().emplace_back(std::move(_lst.at(0)));*/
         // PRINT_ITERATOR_ARRAY(_tmp);
-        it++;
+        ++it;
       }
     } else {
       err_expected_token(it, "=");
@@ -955,33 +955,33 @@ private: // helpers
 
     // FIXME: This is hacky
     if (it->const_data() == "@" && it->type() == Token::TokenType::PUNCTUATOR) {
-      it++;
+      ++it;
       _id = it->const_data();
     } else
       _id = it->const_data();
 
-    if (it++;
+    if (++it;
         it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
-      if (it++; MAP_HAS(ServerLang::type_map, it->const_data().c_str()) &&
+      if (++it; MAP_HAS(ServerLang::type_map, it->const_data().data()) &&
                 it->type() == Token::TokenType::IDENTIFIER) {
         auto _type_string = it->const_data();
-        auto _temp = ServerLang::get_type_instance(_type_string.c_str());
+        auto _temp = ServerLang::get_type_instance(_type_string.data());
         _temp->setId(_id.c_str());
         _var.reset(_temp);
         std::cout << "Variable pref_type: "
                   << static_cast<int>(_var->preferredType()) << std::endl;
-        it++;
+        ++it;
       } else if (it->type() == Token::TokenType::IDENTIFIER) {
         fprintf(stderr,
                 "<IMPL_DECL> of type: %s\nCurrently only internal types can be "
                 "implicitly declared \n",
-                it->const_data().c_str());
+                it->const_data().data());
         auto _temp = ServerLang::get_type_instance("Variant");
         _temp->setId(_id.c_str());
         _var.reset(_temp);
         std::cout << "Variable pref_type: "
                   << static_cast<int>(_var->preferredType()) << std::endl;
-        it++;
+        ++it;
       } else {
         err_expected_token(it, "Identifier");
         m_state = State::NO_OP;
@@ -996,11 +996,11 @@ private: // helpers
     DEBUG_ITERATOR(it)
     if (it->const_data() == "=" &&
         it->type() == Token::TokenType::ARITHMETIC_OPERATOR) {
-      if (it++; it->const_data() == "{" &&
+      if (++it; it->const_data() == "{" &&
                 it->type() == Token::TokenType::PUNCTUATOR) {
         std::cout << "Var_Decl::Before: ";
         DEBUG_ITERATOR(it)
-        it++;
+        ++it;
         std::cout << "Var_Decl::After: ";
         DEBUG_ITERATOR(it)
         _var->children().emplace_back(std::move(check_for_compound_stmnt(it)));
@@ -1011,7 +1011,7 @@ private: // helpers
 
         _var->children().emplace_back(std::move(_lst.at(0)));*/
         // PRINT_ITERATOR_ARRAY(_tmp);
-        it++;
+        ++it;
       }
     } else {
       err_expected_token(it, "=");
@@ -1024,7 +1024,7 @@ private: // helpers
   node check_for_fn_call(Tokenizer::token_list::const_iterator &it) {
     while (NOT_DELIMETER(it, ";")) {
       // TODO
-      it++;
+      ++it;
     }
     m_state = State::NO_OP;
     return {};
@@ -1034,28 +1034,28 @@ private: // helpers
     DEBUG_ITERATOR(it)
     auto const _id = it->const_data();
     auto _fn = new ServerLang::Function<ServerLang::node_ptr>();
-    _fn->setId(_id.c_str());
+    _fn->setId(_id.data());
 
-    if (it++;
+    if (++it;
         it->const_data() == "(" && it->type() == Token::TokenType::PUNCTUATOR) {
-      it++;
+      ++it;
       check_for_parameter_list(it);
     } else {
       err_expected_token(it, "(");
     }
 
     if (it->const_data() == ":" && it->type() == Token::TokenType::PUNCTUATOR) {
-      it++;
+      ++it;
       DEBUG_ITERATOR(it)
       _fn->setReturn_t(
-          ServerLang::type_map.find(it->const_data().c_str())->second);
+          ServerLang::type_map.find(it->const_data().data())->second);
     } else {
       err_expected_token(it, ":");
     }
 
-    if (it++;
+    if (++it;
         it->const_data() == "{" && it->type() == Token::TokenType::PUNCTUATOR) {
-      it++;
+      ++it;
       check_for_compound_stmnt(it);
     } else {
       err_expected_token(it, "{");
@@ -1140,8 +1140,8 @@ int main(int argc, char **argv) {
   auto const tkns = Tokenizer::evaluate(data);
 
   for (auto const &v : tkns)
-    std::cout << Token::TokenNames.at(v.type()) << " : " << v.const_data()
-              << std::endl;
+    fprintf(stdout, " %s : %s \n", Token::TokenNames.at(v.type()),
+            v.const_data().data());
 
   SyntaxAnalyzer _st;
   auto const nodes = _st.analyze(tkns);

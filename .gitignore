@@ -6,6 +6,9 @@
 
 /.vscode/*
 /.fleet/*
+/.status/*
+/.checkmate/*
+/.PVS-Studio/*
 *~
 *.autosave
 *.a
